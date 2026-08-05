@@ -3,7 +3,7 @@ terraform {
   backend "s3" {
     bucket         = "acme-rag-tfstate-staging"
     key            = "rag-platform/terraform.tfstate"
-    region         = "eu-west-3"
+    region         = "us-east-1"
     dynamodb_table = "acme-rag-tfstate-lock-staging"
     encrypt        = true
   }

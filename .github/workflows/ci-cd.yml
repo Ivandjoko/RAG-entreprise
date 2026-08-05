@@ -9,7 +9,7 @@ on:
 
 env:
   TF_VERSION: "1.7.5"
-  AWS_REGION: "eu-west-3"
+  AWS_REGION: "us-east-1"
 
 permissions:
   id-token: write   # requis pour l'échange OIDC avec AWS (aws-actions/configure-aws-credentials)

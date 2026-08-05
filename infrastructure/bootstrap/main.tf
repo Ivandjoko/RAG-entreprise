@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-west-3"
+  region = "us-east-1"
 }
 
 # 1. Bucket S3 pour les states Terraform des vrais environnements
