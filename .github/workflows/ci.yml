@@ -1,0 +1,57 @@
+name: CI
+
+# Workflow réutilisable uniquement (pas de déclencheur push/pull_request en propre) :
+# c'est cd.yml qui l'appelle via `uses:`, pour garder un seul pipeline cohérent malgré
+# la séparation en plusieurs fichiers (GitHub Actions ne permet pas de `needs:` entre
+# jobs de fichiers différents autrement).
+on:
+  workflow_call: {}
+
+jobs:
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      - run: tflint --init
+        working-directory: infrastructure
+      - run: tflint --recursive
+        working-directory: infrastructure
+
+  checkov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure
+
+  tfsec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infrastructure
+
+  lint_python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff black
+      - run: ruff check src/
+      - run: black --check src/
+
+  security_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - run: pip-audit -r src/ingestion_lambda/requirements.txt
+      - run: pip-audit -r src/query_orchestrator_lambda/requirements.txt
