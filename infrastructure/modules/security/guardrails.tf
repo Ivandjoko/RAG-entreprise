@@ -65,7 +65,7 @@ resource "aws_bedrock_guardrail" "main" {
     }
   }
 
-  kms_key_arn = var.kms_data_key_arn
+  kms_key_arn = aws_kms_key.data.arn
 }
 
 resource "aws_bedrock_guardrail_version" "main" {

@@ -15,7 +15,7 @@ def check_thresholds(scores_path: str, min_faithfulness: float, min_recall: floa
 
     if avg_faithfulness < min_faithfulness or avg_recall < min_recall:
         print("ÉCHEC: la qualité du RAG est sous le seuil, déploiement bloqué.")
-        sys.exit(1)  # fait échouer le job GitLab CI, bloque le déploiement prod
+        sys.exit(1)  # fait échouer le job GitHub Actions, bloque le déploiement prod
 
     print("Seuils respectés, déploiement autorisé.")
 

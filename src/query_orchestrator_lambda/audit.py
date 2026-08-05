@@ -23,8 +23,18 @@ def log_query(user_id: str, question: str, sources: list[str],
     if error:
         entry["error"] = error
 
-    _logs_client.put_log_events(
-        logGroupName=LOG_GROUP,
-        logStreamName=f"{user_id}-{int(time.time() // 86400)}",  # un stream par jour et par user
-        logEvents=[{"timestamp": entry["timestamp"], "message": json.dumps(entry)}]
-    )
+    log_stream = f"{user_id}-{int(time.time() // 86400)}"  # un stream par jour et par user
+    log_event = {"timestamp": entry["timestamp"], "message": json.dumps(entry)}
+
+    try:
+        _logs_client.put_log_events(
+            logGroupName=LOG_GROUP, logStreamName=log_stream, logEvents=[log_event]
+        )
+    except _logs_client.exceptions.ResourceNotFoundException:
+        # Premier log du jour pour cet utilisateur : le stream n'existe pas encore.
+        # On le crée puis on réessaie une fois - l'audit ne doit jamais faire échouer
+        # une requête utilisateur par ailleurs réussie.
+        _logs_client.create_log_stream(logGroupName=LOG_GROUP, logStreamName=log_stream)
+        _logs_client.put_log_events(
+            logGroupName=LOG_GROUP, logStreamName=log_stream, logEvents=[log_event]
+        )

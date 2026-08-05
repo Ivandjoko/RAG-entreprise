@@ -9,6 +9,11 @@ on:
 
 env:
   TF_VERSION: "1.7.5"
+  AWS_REGION: "eu-west-3"
+
+permissions:
+  id-token: write   # requis pour l'échange OIDC avec AWS (aws-actions/configure-aws-credentials)
+  contents: read
 
 jobs:
   # ---------- lint ----------
@@ -68,11 +73,18 @@ jobs:
   plan_dev:
     runs-on: ubuntu-latest
     needs: [tflint, checkov, tfsec, unit_tests]
+    environment:
+      name: dev
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
       - run: terraform init
         working-directory: infrastructure/environments/dev
       - run: terraform plan -out=tfplan
@@ -86,11 +98,18 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [tflint, checkov, tfsec, unit_tests]
+    environment:
+      name: staging
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
       - run: terraform init
         working-directory: infrastructure/environments/staging
       - run: terraform plan -out=tfplan
@@ -104,11 +123,18 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [tflint, checkov, tfsec, unit_tests]
+    environment:
+      name: prod
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
       - run: terraform init
         working-directory: infrastructure/environments/prod
       - run: terraform plan -out=tfplan
@@ -143,6 +169,11 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-dev
@@ -171,11 +202,18 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: [deploy_dev]
+    environment:
+      name: dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
       - run: |
           cd src/evaluation
           python run_evaluation.py --output scores.json
@@ -205,6 +243,11 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-staging
@@ -229,6 +272,11 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-prod

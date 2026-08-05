@@ -6,14 +6,8 @@ resource "aws_iam_role" "orchestrator_lambda" {
 }
 
 data "aws_iam_policy_document" "orchestrator_permissions" {
-  statement {
-    sid     = "QueryVectorIndex"
-    effect  = "Allow"
-    actions = ["aoss:APIAccessAll"]
-    resources = [var.opensearch_collection_arn]
-    # note : même verbe qu'en ingestion, mais le rôle diffère - l'AZ Collection Policy
-    # OpenSearch (pas Terraform IAM) est ce qui distingue lecture/écriture ici, voir plus bas
-  }
+  # Le grant "aoss:APIAccessAll" (QueryVectorIndex) est accordé depuis modules/retrieval,
+  # pas ici : voir la note équivalente dans iam_ingestion.tf (dépendance circulaire évitée).
 
   statement {
     sid     = "InvokeGenerationModel"
@@ -42,7 +36,7 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
     sid     = "DecryptForReading"
     effect  = "Allow"
     actions = ["kms:Decrypt"]  # pas GenerateDataKey : cette Lambda ne chiffre jamais, elle déchiffre pour lire
-    resources = [var.kms_data_key_arn]
+    resources = [aws_kms_key.data.arn]
   }
 }
 

@@ -27,7 +27,7 @@ resource "aws_opensearchserverless_security_policy" "network" {
         { ResourceType = "dashboard",  Resource = ["collection/${var.collection_name}"] }
       ]
       AllowFromPublic = false
-      SourceVPCEs     = [var.opensearch_vpc_endpoint_id]
+      SourceVPCEs     = [aws_opensearchserverless_vpc_endpoint.vectors.id]
     }
   ])
 }

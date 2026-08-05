@@ -8,3 +8,9 @@ output "collection_endpoint" {
 output "index_name" {
   value = var.index_name
 }
+output "orchestrator_lambda_arn" {
+  value = aws_lambda_function.orchestrator.arn
+}
+output "orchestrator_lambda_function_name" {
+  value = aws_lambda_function.orchestrator.function_name
+}

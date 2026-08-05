@@ -22,10 +22,16 @@ _opensearch_client = _get_opensearch_client(COLLECTION_ENDPOINT, AWS_REGION)
 
 def handler(event, context):
     start_time = time.time()
-    user_id = event["requestContext"]["authorizer"]["claims"]["sub"]  # injecté par Cognito
-    question = json.loads(event["body"])["question"]
+    user_id = None
+    question = None
 
     try:
+        # user_id/question sont extraits DANS le try : une requête malformée (JSON invalide,
+        # claims Cognito absentes) doit renvoyer une erreur propre, jamais une exception non
+        # gérée qui remonterait un traceback brut au client via API Gateway.
+        user_id = event["requestContext"]["authorizer"]["claims"]["sub"]  # injecté par Cognito
+        question = json.loads(event["body"])["question"]
+
         # Étape 1 - Guardrail en entrée : bloque prompt injection AVANT toute recherche
         check_input(question, GUARDRAIL_ID, GUARDRAIL_VERSION)
 
@@ -65,7 +71,7 @@ def handler(event, context):
             })
         }
 
-    except ContentBlockedException as e:
+    except ContentBlockedException:
         log_query(user_id=user_id, question=question, sources=[], 
                    latency_ms=int((time.time() - start_time) * 1000), status="blocked")
         return {

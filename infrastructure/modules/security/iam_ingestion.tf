@@ -46,18 +46,16 @@ data "aws_iam_policy_document" "ingestion_permissions" {
     ]
   }
 
-  statement {
-    sid     = "WriteVectorIndex"
-    effect  = "Allow"
-    actions = ["aoss:APIAccessAll"]  # OpenSearch Serverless (aoss = Amazon OpenSearch Serverless)
-    resources = [var.opensearch_collection_arn]
-  }
+  # Le grant "aoss:APIAccessAll" (WriteVectorIndex) est accordé depuis modules/retrieval,
+  # pas ici : ce module ne connaît pas encore l'ARN de la collection au moment de son
+  # propre apply (elle est créée par retrieval), et l'inverse créerait une dépendance
+  # circulaire entre les deux modules.
 
   statement {
     sid     = "DecryptData"
     effect  = "Allow"
     actions = ["kms:Decrypt", "kms:GenerateDataKey"]
-    resources = [var.kms_data_key_arn]
+    resources = [aws_kms_key.data.arn]
   }
 
   # Logs CloudWatch : chaque Lambda ne peut écrire que dans SON propre log group

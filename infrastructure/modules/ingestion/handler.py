@@ -7,7 +7,7 @@ from chunking import chunk_document
 from embeddings import embed_chunks
 from indexer import index_chunks
 from metadata_store import write_document_metadata, resolve_permissions
-from retrieval import _get_opensearch_client  # réutilisé depuis le module orchestrateur
+from opensearch_client import get_opensearch_client
 
 s3 = boto3.client("s3")
 
@@ -16,7 +16,7 @@ COLLECTION_ENDPOINT = os.environ["OPENSEARCH_COLLECTION_ENDPOINT"]
 METADATA_TABLE = os.environ["METADATA_TABLE_NAME"]
 AWS_REGION = os.environ["AWS_REGION"]
 
-_opensearch_client = _get_opensearch_client(COLLECTION_ENDPOINT, AWS_REGION)
+_opensearch_client = get_opensearch_client(COLLECTION_ENDPOINT, AWS_REGION)
 
 
 def handler(event, context):
@@ -64,7 +64,7 @@ def handler(event, context):
 
         return {"statusCode": 200, "body": json.dumps({"chunks_indexed": len(chunks)})}
 
-    except Exception as e:
+    except Exception:
         # En échec, on écrit le statut en DynamoDB plutôt que de laisser l'échec silencieux -
         # ça permet un dashboard "documents en erreur" consultable par un opérateur
         write_document_metadata(METADATA_TABLE, doc_id=key, source_key=key,
