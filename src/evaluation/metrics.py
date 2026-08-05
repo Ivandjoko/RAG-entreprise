@@ -10,7 +10,7 @@ def build_ragas_evaluator_llm():
     On utilise Claude via Bedrock - garder le même provider que la prod
     limite les coûts et la complexité opérationnelle.
     """
-    bedrock_llm = ChatBedrock(model_id="anthropic.claude-sonnet-4-6-v1:0", region_name="us-east-1")
+    bedrock_llm = ChatBedrock(model_id="anthropic.claude-sonnet-4-6-v1:0", region_name="eu-west-3")
     return LangchainLLMWrapper(bedrock_llm)
 
 

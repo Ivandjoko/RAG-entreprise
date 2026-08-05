@@ -32,7 +32,7 @@ def evaluate_configuration(dataset_path: str, config_name: str, opensearch_clien
 
 
 if __name__ == "__main__":
-    client = _get_opensearch_client(endpoint="...", region="us-east-1")
+    client = _get_opensearch_client(endpoint="...", region="eu-west-3")
 
     # Comparer plusieurs configurations objectivement - c'est ça qui justifie
     # tes choix techniques face au client avec des chiffres, pas des opinions

@@ -12,8 +12,3 @@ output "terraform_deployer_policy_arn" {
 output "permissions_boundary_arn" {
   value = module.policies.permissions_boundary_arn
 }
-# infrastructure/bootstrap/outputs.tf
-
-output "terraform_deployer_policy_json" {
-  value = data.aws_iam_policy_document.terraform_deployer.json
-}

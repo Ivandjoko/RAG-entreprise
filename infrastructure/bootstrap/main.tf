@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "eu-west-3"
 }
 
 # 1. Bucket S3 pour les states Terraform des vrais environnements
@@ -92,3 +92,5 @@ resource "aws_iam_role_policy_attachment" "deployer" {
   role       = aws_iam_role.github_actions.name
   policy_arn = aws_iam_policy.terraform_deployer.arn
 }
+
+AWS_PROFILE=AdministratorAccess-Bootstrap-027457927285 terraform plan -state=terraform.dev.tfstate -var="github_org=Ivandjoko" -var="environment_suffix=dev"
