@@ -29,14 +29,18 @@ variable "opensearch_index_name" {
   type = string
 }
 
-# NOTE: bloqué en amont, aucune ressource S3/DynamoDB n'existe encore pour ces deux-là
-# (voir rapport d'audit) - le module reste syntaxiquement valide mais pas encore appelable.
-variable "documents_bucket_name" {
+variable "kms_audit_key_arn" {
   type        = string
-  description = "Nom du bucket S3 des documents sources (déclenche l'EventBridge rule)"
+  description = "Clé KMS utilisée pour chiffrer le log group CloudWatch de la Lambda"
 }
 
-variable "metadata_table_name" {
-  type        = string
-  description = "Nom de la table DynamoDB de métadonnées"
+variable "log_retention_days" {
+  type    = number
+  default = 30
+}
+
+variable "ingestion_max_concurrency" {
+  type        = number
+  default     = 5
+  description = "Limite les exécutions simultanées pour ne pas saturer le throttling Bedrock (embeddings) sur un upload massif"
 }

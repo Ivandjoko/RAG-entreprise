@@ -35,3 +35,19 @@ resource "aws_iam_role_policy" "orchestrator_query_vector_index" {
     }]
   })
 }
+
+# Lecture seule de la table user_permissions (créée dans ce module, voir dynamodb.tf) -
+# même raison que les grants aoss ci-dessus (pas de dépendance circulaire vers security).
+resource "aws_iam_role_policy" "orchestrator_read_user_permissions" {
+  name = "orchestrator-read-user-permissions"
+  role = local.orchestrator_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "ReadUserPermissions"
+      Effect   = "Allow"
+      Action   = ["dynamodb:GetItem"]
+      Resource = aws_dynamodb_table.user_permissions.arn
+    }]
+  })
+}

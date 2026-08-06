@@ -25,18 +25,32 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
     resources = [aws_bedrock_guardrail.main.guardrail_arn]
   }
 
-  statement {
-    sid     = "ReadMetadataForFiltering"
-    effect  = "Allow"
-    actions = ["dynamodb:GetItem", "dynamodb:Query"]  # lecture seule, jamais PutItem/DeleteItem
-    resources = [var.metadata_table_arn]
-  }
+  # Le grant DynamoDB (ReadUserPermissions) est accordé depuis modules/retrieval, qui
+  # possède la table user_permissions - même raison que le grant aoss ci-dessus.
 
   statement {
     sid     = "DecryptForReading"
     effect  = "Allow"
     actions = ["kms:Decrypt"]  # pas GenerateDataKey : cette Lambda ne chiffre jamais, elle déchiffre pour lire
     resources = [aws_kms_key.data.arn]
+  }
+  statement {
+    sid     = "XRayTracing"
+    effect  = "Allow"
+    actions = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"]  # X-Ray ne supporte pas le scoping par ARN sur ces actions
+  }
+
+  # Logs d'exécution Lambda + log group d'audit applicatif utilisé par audit.py
+  # (sans ça, chaque requête plante sur AccessDenied au moment de logger l'audit)
+  statement {
+    sid     = "WriteLogs"
+    effect  = "Allow"
+    actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+    resources = [
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/rag-orchestrator-${var.environment}:*",
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/rag-platform/query-audit:*"
+    ]
   }
 }
 

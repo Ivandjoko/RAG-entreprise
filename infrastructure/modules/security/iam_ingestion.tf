@@ -19,21 +19,15 @@ data "aws_iam_policy_document" "lambda_assume_role" {
 
 # Policy scopée : uniquement le bucket S3 du projet, en lecture seule
 data "aws_iam_policy_document" "ingestion_permissions" {
-  statement {
-    sid     = "ReadSourceDocuments"
-    effect  = "Allow"
-    actions = ["s3:GetObject", "s3:ListBucket"]
-    resources = [
-      var.documents_bucket_arn,
-      "${var.documents_bucket_arn}/*"
-    ]
-  }
+  # Les grants S3 (ReadSourceDocuments) et DynamoDB (WriteMetadata) sont accordés depuis
+  # modules/ingestion, qui possède le bucket et la table - même raison que le grant aoss
+  # ci-dessous (dépendance circulaire évitée).
 
   statement {
-    sid     = "WriteMetadata"
+    sid     = "XRayTracing"
     effect  = "Allow"
-    actions = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
-    resources = [var.metadata_table_arn]  # jamais "*", toujours l'ARN précis de LA table
+    actions = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"]  # X-Ray ne supporte pas le scoping par ARN sur ces actions
   }
 
   statement {
@@ -62,7 +56,7 @@ data "aws_iam_policy_document" "ingestion_permissions" {
   statement {
     sid     = "WriteOwnLogs"
     effect  = "Allow"
-    actions = ["logs:CreateLogStream", "logs:PutLogEvents"]
+    actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/rag-ingestion-${var.environment}:*"]
   }
 }

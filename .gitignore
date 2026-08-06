@@ -12,6 +12,9 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Artefacts de build Lambda (zips générés par archive_file / le job de build du layer)
+**/build/
+
 # AWS
 .aws/
 

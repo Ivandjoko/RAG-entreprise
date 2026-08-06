@@ -1,7 +1,7 @@
-# environments/dev/variables.tf
+# environments/staging/variables.tf
 variable "environment" {
   type    = string
-  default = "dev"
+  default = "staging"
 }
 
 variable "vpc_cidr" {

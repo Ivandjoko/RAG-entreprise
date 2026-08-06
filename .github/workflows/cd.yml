@@ -27,11 +27,63 @@ jobs:
     needs: [ci]
     uses: ./.github/workflows/unit-tests.yml
 
+  # ---------- build_orchestrator_layer ----------
+  # Empaquette les dépendances tierces (opensearch-py, boto3, ...) de la Lambda
+  # orchestrateur en layer : le zip du code source seul (orchestrator_lambda.tf)
+  # ne les contient pas. Requis par tout job qui touche modules/retrieval.
+
+  build_orchestrator_layer:
+    runs-on: ubuntu-latest
+    needs: [ci, unit_tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build dependencies layer
+        run: |
+          mkdir -p infrastructure/modules/retrieval/build/python
+          pip install -r src/query_orchestrator_lambda/requirements.txt \
+            -t infrastructure/modules/retrieval/build/python \
+            --platform manylinux2014_x86_64 --only-binary=:all:
+          cd infrastructure/modules/retrieval/build
+          zip -r orchestrator_layer.zip python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build/orchestrator_layer.zip
+
+  # ---------- build_ingestion_layer ----------
+  # Même principe que build_orchestrator_layer, pour les dépendances de la Lambda
+  # d'ingestion (opensearch-py, pypdf, python-docx, beautifulsoup4). Requis par tout
+  # job qui touche modules/ingestion.
+
+  build_ingestion_layer:
+    runs-on: ubuntu-latest
+    needs: [ci, unit_tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build dependencies layer
+        run: |
+          mkdir -p infrastructure/modules/ingestion/build/python
+          pip install -r src/ingestion_lambda/requirements.txt \
+            -t infrastructure/modules/ingestion/build/python \
+            --platform manylinux2014_x86_64 --only-binary=:all:
+          cd infrastructure/modules/ingestion/build
+          zip -r ingestion_layer.zip python
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build/ingestion_layer.zip
+
   # ---------- plan ----------
 
   plan_dev:
     runs-on: ubuntu-latest
-    needs: [ci, unit_tests]
+    needs: [ci, unit_tests, build_orchestrator_layer, build_ingestion_layer]
     environment:
       name: dev
     steps:
@@ -44,6 +96,14 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build
       - run: terraform init
         working-directory: infrastructure/environments/dev
       - run: terraform plan -out=tfplan
@@ -56,7 +116,7 @@ jobs:
   plan_staging:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/')
     runs-on: ubuntu-latest
-    needs: [ci, unit_tests]
+    needs: [ci, unit_tests, build_orchestrator_layer, build_ingestion_layer]
     environment:
       name: staging
     steps:
@@ -69,6 +129,14 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_STAGING }}
           aws-region: ${{ env.AWS_REGION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build
       - run: terraform init
         working-directory: infrastructure/environments/staging
       - run: terraform plan -out=tfplan
@@ -81,7 +149,7 @@ jobs:
   plan_prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: [ci, unit_tests]
+    needs: [ci, unit_tests, build_orchestrator_layer, build_ingestion_layer]
     environment:
       name: prod
     steps:
@@ -94,6 +162,14 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
           aws-region: ${{ env.AWS_REGION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build
       - run: terraform init
         working-directory: infrastructure/environments/prod
       - run: terraform plan -out=tfplan
@@ -126,6 +202,14 @@ jobs:
         with:
           name: tfplan-dev
           path: infrastructure/environments/dev
+      - uses: actions/download-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build
       - run: terraform init
         working-directory: infrastructure/environments/dev
       - run: terraform apply -auto-approve tfplan
@@ -191,6 +275,14 @@ jobs:
         with:
           name: tfplan-staging
           path: infrastructure/environments/staging
+      - uses: actions/download-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build
       - run: terraform init
         working-directory: infrastructure/environments/staging
       - run: terraform apply -auto-approve tfplan
@@ -220,6 +312,14 @@ jobs:
         with:
           name: tfplan-prod
           path: infrastructure/environments/prod
+      - uses: actions/download-artifact@v4
+        with:
+          name: orchestrator-layer
+          path: infrastructure/modules/retrieval/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ingestion-layer
+          path: infrastructure/modules/ingestion/build
       - run: terraform init
         working-directory: infrastructure/environments/prod
       - run: terraform apply -auto-approve tfplan

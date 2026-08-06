@@ -14,3 +14,6 @@ output "orchestrator_lambda_arn" {
 output "orchestrator_lambda_function_name" {
   value = aws_lambda_function.orchestrator.function_name
 }
+output "orchestrator_lambda_invoke_arn" {
+  value = aws_lambda_function.orchestrator.invoke_arn
+}

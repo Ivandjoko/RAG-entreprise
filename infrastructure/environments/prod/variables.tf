@@ -1,7 +1,7 @@
-# environments/dev/variables.tf
+# environments/prod/variables.tf
 variable "environment" {
   type    = string
-  default = "dev"
+  default = "prod"
 }
 
 variable "vpc_cidr" {

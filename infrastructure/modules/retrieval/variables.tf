@@ -49,13 +49,17 @@ variable "guardrail_version" {
   type = string
 }
 
-# NOTE: bloqué en amont, aucune table DynamoDB de métadonnées n'existe encore (voir rapport d'audit)
-variable "metadata_table_name" {
-  type = string
-}
-
 variable "opensearch_instance_type" {
   type        = string
   default     = "OCU"
   description = "Sans effet pour l'instant : OpenSearch Serverless ne se dimensionne pas par type d'instance (conservé pour compat descendante de l'appelant)."
+}
+
+variable "kms_audit_key_arn" {
+  type = string
+}
+
+variable "log_retention_days" {
+  type    = number
+  default = 30
 }

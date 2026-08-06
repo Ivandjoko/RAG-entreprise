@@ -13,16 +13,3 @@ variable "aws_region" {
   type        = string
   description = "Région AWS où sont déployées les ressources (utilisée pour construire des ARNs)"
 }
-
-# NOTE: ces 2 variables sont nécessaires pour que le module soit syntaxiquement valide,
-# mais rien ne les alimente encore en amont : les ressources documents_bucket / metadata_table
-# n'existent pas encore côté Terraform (voir rapport d'audit).
-variable "documents_bucket_arn" {
-  type        = string
-  description = "ARN du bucket S3 des documents sources (créé par le module ingestion)"
-}
-
-variable "metadata_table_arn" {
-  type        = string
-  description = "ARN de la table DynamoDB de métadonnées (créée par le module ingestion)"
-}

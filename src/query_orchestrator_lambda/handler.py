@@ -13,7 +13,7 @@ GUARDRAIL_ID = os.environ["GUARDRAIL_ID"]
 GUARDRAIL_VERSION = os.environ["GUARDRAIL_VERSION"]
 COLLECTION_ENDPOINT = os.environ["OPENSEARCH_COLLECTION_ENDPOINT"]
 INDEX_NAME = os.environ["OPENSEARCH_INDEX_NAME"]
-METADATA_TABLE = os.environ["METADATA_TABLE_NAME"]
+USER_PERMISSIONS_TABLE = os.environ["USER_PERMISSIONS_TABLE_NAME"]
 AWS_REGION = os.environ["AWS_REGION"]
 
 # Client OpenSearch créé une fois, réutilisé entre invocations (hors handler = cold start only)
@@ -36,7 +36,7 @@ def handler(event, context):
         check_input(question, GUARDRAIL_ID, GUARDRAIL_VERSION)
 
         # Étape 2 - Résolution des droits utilisateur
-        allowed_permissions = get_user_permissions(user_id, METADATA_TABLE)
+        allowed_permissions = get_user_permissions(user_id, USER_PERMISSIONS_TABLE)
 
         # Étape 3 - Recherche hybride, filtrée par permissions
         query_vector = embed_query(question)

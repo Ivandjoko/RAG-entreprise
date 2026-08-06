@@ -29,50 +29,47 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# Security group des VPC endpoints Interface : n'autorise que le HTTPS depuis le VPC lui-même
+# Security group des VPC endpoints Interface, et security group des Lambdas : ils se
+# référencent mutuellement (Lambda -> egress vers vpc_endpoints, vpc_endpoints <- ingress
+# depuis Lambda). Les règles sont donc déclarées à part (aws_vpc_security_group_*_rule),
+# jamais inline dans les 2 resources aws_security_group elles-mêmes, sinon Terraform détecte
+# un cycle de dépendance (chacun aurait besoin de l'ID de l'autre pour être créé).
 resource "aws_security_group" "vpc_endpoints" {
   name_prefix = "rag-vpc-endpoints-${var.environment}-"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    description = "HTTPS depuis le VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = merge(local.common_tags, { Name = "rag-vpc-endpoints-${var.environment}" })
 }
 
-# Security group des Lambdas (ingestion, orchestrateur) : aucun ingress, uniquement
-# de l'egress HTTPS vers les VPC endpoints / OpenSearch Serverless / Bedrock
 resource "aws_security_group" "lambda" {
   name_prefix = "rag-lambda-${var.environment}-"
   vpc_id      = aws_vpc.main.id
 
-  egress {
-    description = "HTTPS sortant (VPC endpoints, OpenSearch Serverless)"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = merge(local.common_tags, { Name = "rag-lambda-${var.environment}" })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "vpc_endpoints_from_lambda" {
+  security_group_id            = aws_security_group.vpc_endpoints.id
+  description                  = "HTTPS depuis les Lambdas"
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.lambda.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "lambda_to_vpc_endpoints" {
+  security_group_id            = aws_security_group.lambda.id
+  description                  = "HTTPS sortant vers les VPC endpoints (Bedrock, S3, DynamoDB, OpenSearch Serverless)"
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.vpc_endpoints.id
 }
 
 # VPC endpoints pour rester privé (pas de NAT Gateway = économie + sécurité)
 resource "aws_vpc_endpoint" "bedrock" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${data.aws_region.current.region}.bedrock-runtime"
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.bedrock-runtime"
   vpc_endpoint_type = "Interface"
   subnet_ids        = [for s in aws_subnet.private : s.id]
   security_group_ids = [aws_security_group.vpc_endpoints.id]
@@ -80,7 +77,20 @@ resource "aws_vpc_endpoint" "bedrock" {
 
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${data.aws_region.current.region}.s3"
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
   vpc_endpoint_type = "Gateway"
   route_table_ids   = [aws_route_table.private.id]
 }
+
+# modules/networking/main.tf — ajouts
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
+  vpc_endpoint_type = "Gateway"   # Gateway comme S3, gratuit, via route table
+  route_table_ids   = [aws_route_table.private.id]
+}
+
+# Pas d'endpoint OpenSearch Serverless ici : ce n'est PAS un service PrivateLink standard
+# (aws_vpc_endpoint), c'est une ressource dédiée (aws_opensearchserverless_vpc_endpoint),
+# déjà créée et gérée dans modules/retrieval/vpc_endpoint.tf.
