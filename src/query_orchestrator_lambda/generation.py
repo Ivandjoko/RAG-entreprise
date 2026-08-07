@@ -21,7 +21,9 @@ def generate_answer(question: str, context_chunks: list[dict]) -> str:
     context = build_context(context_chunks)
 
     response = _bedrock_runtime.invoke_model(
-        modelId="anthropic.claude-sonnet-4-6-v1:0",
+        # eu-west-3 n'a pas d'accès "In-Region" à ce modèle sur Bedrock - seul le
+        # profil d'inférence cross-region "eu" est disponible depuis cette région.
+        modelId="eu.anthropic.claude-sonnet-4-6",
         body=json.dumps({
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": 1024,

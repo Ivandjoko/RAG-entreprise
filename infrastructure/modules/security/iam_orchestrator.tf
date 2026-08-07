@@ -14,7 +14,12 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
     effect  = "Allow"
     actions = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
     resources = [
-      "arn:aws:bedrock:${var.aws_region}::foundation-model/anthropic.claude-*"
+      # eu-west-3 n'a pas d'accès "In-Region" à Claude Sonnet 4.6 sur Bedrock : on passe
+      # par le profil d'inférence cross-region "eu", qui route vers le modèle sous-jacent
+      # dans l'une des régions du groupe géo "eu" (eu-central-1, eu-north-1, eu-west-1...).
+      # Les deux ARN sont nécessaires : celui du profil ET celui du modèle sous-jacent.
+      "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/eu.anthropic.claude-sonnet-4-6",
+      "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6"
     ]
   }
 

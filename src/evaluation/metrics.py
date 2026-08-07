@@ -10,7 +10,9 @@ def build_ragas_evaluator_llm():
     On utilise Claude via Bedrock - garder le même provider que la prod
     limite les coûts et la complexité opérationnelle.
     """
-    bedrock_llm = ChatBedrock(model_id="anthropic.claude-sonnet-4-6-v1:0", region_name="eu-west-3")
+    # eu-west-3 n'a pas d'accès "In-Region" à ce modèle sur Bedrock - profil d'inférence
+    # cross-region "eu" requis (voir aussi generation.py, même remarque).
+    bedrock_llm = ChatBedrock(model_id="eu.anthropic.claude-sonnet-4-6", region_name="eu-west-3")
     return LangchainLLMWrapper(bedrock_llm)
 
 

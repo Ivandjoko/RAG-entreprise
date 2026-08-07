@@ -2,11 +2,17 @@
 
 resource "aws_lambda_function" "index_bootstrap" {
   function_name = "rag-index-bootstrap-${var.environment}"
-  role          = var.orchestrator_lambda_role_arn  # même rôle suffit ici (lecture/écriture d'index)
+  # Le rôle orchestrateur n'a qu'un accès en lecture (DescribeIndex/ReadDocument) sur la
+  # policy d'accès OpenSearch (voir opensearch_access_policy.tf) - seul le rôle ingestion a
+  # CreateIndex/UpdateIndex/WriteDocument, nécessaires pour créer l'index ici.
+  role          = var.ingestion_lambda_role_arn
   handler       = "bootstrap.handler"
   runtime       = "python3.12"
   filename      = data.archive_file.index_bootstrap.output_path
   timeout       = 60
+  # Réutilise le layer de dépendances de l'orchestrateur (contient déjà opensearch-py) :
+  # pas besoin d'un 3e layer/job de build pour cette Lambda de bootstrap ponctuelle.
+  layers = [aws_lambda_layer_version.orchestrator_deps.arn]
   vpc_config {
     subnet_ids         = var.private_subnet_ids
     security_group_ids = [var.lambda_security_group_id]

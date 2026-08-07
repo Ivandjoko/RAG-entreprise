@@ -52,12 +52,16 @@ data "aws_iam_policy_document" "ingestion_permissions" {
     resources = [aws_kms_key.data.arn]
   }
 
-  # Logs CloudWatch : chaque Lambda ne peut écrire que dans SON propre log group
+  # Logs CloudWatch : ce rôle est aussi utilisé par la Lambda index_bootstrap (modules/retrieval),
+  # d'où le 2e log group - voir la note dans index_bootstrap.tf.
   statement {
     sid     = "WriteOwnLogs"
     effect  = "Allow"
     actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-    resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/rag-ingestion-${var.environment}:*"]
+    resources = [
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/rag-ingestion-${var.environment}:*",
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/rag-index-bootstrap-${var.environment}:*"
+    ]
   }
 }
 
