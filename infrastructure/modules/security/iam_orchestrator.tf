@@ -9,6 +9,22 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
   # Le grant "aoss:APIAccessAll" (QueryVectorIndex) est accordé depuis modules/retrieval,
   # pas ici : voir la note équivalente dans iam_ingestion.tf (dépendance circulaire évitée).
 
+  # Cette Lambda est attachée au VPC (vpc_config) : sans ces permissions EC2, AWS Lambda
+  # ne peut pas créer les ENI nécessaires pour joindre les subnets privés - équivalent de
+  # la policy managée AWSLambdaVPCAccessExecutionRole, appliqué ici en scope custom.
+  statement {
+    sid     = "VPCNetworkInterface"
+    effect  = "Allow"
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DeleteNetworkInterface",
+      "ec2:AssignPrivateIpAddresses",
+      "ec2:UnassignPrivateIpAddresses"
+    ]
+    resources = ["*"]  # ces actions EC2 ne supportent pas le scoping par ARN de ressource
+  }
+
   statement {
     sid     = "InvokeGenerationModel"
     effect  = "Allow"

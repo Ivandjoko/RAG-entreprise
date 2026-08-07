@@ -13,4 +13,5 @@ def get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:
         http_auth=auth,
         use_ssl=True,
         connection_class=RequestsHttpConnection,
+        timeout=30,  # sans ça, un souci réseau fait pendre l'appel jusqu'au timeout Lambda
     )

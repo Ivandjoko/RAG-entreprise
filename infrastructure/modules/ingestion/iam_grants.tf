@@ -23,6 +23,15 @@ resource "aws_iam_role_policy" "ingestion_storage_access" {
         Effect   = "Allow"
         Action   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
         Resource = aws_dynamodb_table.metadata.arn
+      },
+      {
+        # Nécessaire pour que le destination_config.on_failure de dlq.tf fonctionne :
+        # sans ça, Lambda ne peut pas router les échecs vers la DLQ (AccessDenied silencieux
+        # à la configuration, comme on vient de le voir en apply réel).
+        Sid      = "SendToDeadLetterQueue"
+        Effect   = "Allow"
+        Action   = ["sqs:SendMessage"]
+        Resource = aws_sqs_queue.ingestion_dlq.arn
       }
     ]
   })

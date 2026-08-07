@@ -3,7 +3,7 @@
 resource "aws_wafv2_web_acl" "main" {
   count       = var.enable_waf ? 1 : 0
   name        = "rag-platform-waf-${var.environment}"
-  description = "Protection WAF pour l'API RAG"
+  description = "Protection WAF pour la plateforme RAG"   # pas d'apostrophe : rejetée par la regex WAFv2
   scope       = "REGIONAL"   # REGIONAL pour API Gateway, CLOUDFRONT si jamais devant CloudFront
 
   default_action {

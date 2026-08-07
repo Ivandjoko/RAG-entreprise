@@ -1,8 +1,12 @@
 # guardrails.py
 import boto3
 import json
+from botocore.config import Config
 
-_bedrock_runtime = boto3.client("bedrock-runtime")
+_bedrock_runtime = boto3.client(
+    "bedrock-runtime",
+    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "adaptive"}),
+)
 
 class ContentBlockedException(Exception):
     """Levée quand le Guardrail bloque le contenu - jamais silencieusement ignorée."""

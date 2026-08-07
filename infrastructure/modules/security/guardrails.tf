@@ -2,6 +2,7 @@
 
 resource "aws_bedrock_guardrail" "main" {
   name                      = "rag-guardrail-${var.environment}"
+  description               = "Garde-fou de contenu pour le RAG - ${var.environment}"
   blocked_input_messaging   = "Votre question contient du contenu qui ne peut pas être traité."
   blocked_outputs_messaging = "Je ne peux pas fournir cette réponse pour des raisons de sécurité."
 

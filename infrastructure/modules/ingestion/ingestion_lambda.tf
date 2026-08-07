@@ -45,9 +45,10 @@ resource "aws_lambda_function" "ingestion" {
     mode = "Active"
   }
 
-  reserved_concurrent_executions = var.ingestion_max_concurrency
-  # Limite le nombre d'exécutions simultanées - évite qu'un upload massif de
-  # milliers de documents ne sature le throttling Bedrock (embeddings) d'un coup
+  # Pas de reserved_concurrent_executions ici : le quota de concurrence Lambda de ce compte
+  # est trop bas pour réserver quoi que ce soit sans faire passer le pool non-réservé sous
+  # le minimum AWS de 10. À réactiver une fois un relèvement de quota demandé (voir
+  # var.ingestion_max_concurrency, toujours déclarée mais non câblée pour l'instant).
 }
 
 resource "aws_cloudwatch_log_group" "ingestion" {

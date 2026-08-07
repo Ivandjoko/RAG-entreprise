@@ -85,6 +85,11 @@ resource "aws_api_gateway_stage" "main" {
   }
 
   xray_tracing_enabled = true   # traçabilité de bout en bout, utile pour débugger la latence
+
+  # Pas de référence directe vers aws_api_gateway_account.main (réglage de compte, pas
+  # rattaché par ARN) : sans ce depends_on explicite, rien ne garantit qu'il soit créé
+  # avant que ce stage n'essaie d'activer les access logs.
+  depends_on = [aws_api_gateway_account.main]
 }
 
 resource "aws_cloudwatch_log_group" "api_access" {

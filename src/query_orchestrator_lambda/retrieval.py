@@ -1,9 +1,13 @@
 # retrieval.py
 import boto3
 import json
+from botocore.config import Config
 from opensearchpy import OpenSearch, RequestsAWSV4SignerAuth, RequestsHttpConnection
 
-_bedrock_runtime = boto3.client("bedrock-runtime")
+_bedrock_runtime = boto3.client(
+    "bedrock-runtime",
+    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "adaptive"}),
+)
 
 def _get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:
     credentials = boto3.Session().get_credentials()
@@ -13,6 +17,7 @@ def _get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:
         http_auth=auth,
         use_ssl=True,
         connection_class=RequestsHttpConnection,
+        timeout=30,
     )
 
 
