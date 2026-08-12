@@ -34,5 +34,12 @@ resource "aws_lambda_invocation" "create_index" {
     mapping_file          = "mapping.json"   # embarqué dans le zip de la Lambda
   })
 
-  depends_on = [aws_opensearchserverless_access_policy.collection_access]
+  # Il faut attendre à la fois la policy d'accès OpenSearch (data-plane) ET le grant IAM
+  # AWS (control-plane, aoss:APIAccessAll dans iam_grants.tf) - ce sont deux mécanismes
+  # de permission distincts sur ce même rôle. Sans les deux dans le depends_on, Terraform
+  # peut invoquer cette Lambda avant que le grant IAM ne soit réellement attaché -> 403.
+  depends_on = [
+    aws_opensearchserverless_access_policy.collection_access,
+    aws_iam_role_policy.ingestion_write_vector_index
+  ]
 }

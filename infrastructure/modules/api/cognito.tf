@@ -50,7 +50,10 @@ resource "aws_cognito_user_pool_client" "orchestrator" {
 
   explicit_auth_flows = [
     "ALLOW_USER_SRP_AUTH",          # authentification par mot de passe, sécurisée (SRP)
-    "ALLOW_REFRESH_TOKEN_AUTH"
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    # Nécessite déjà des credentials IAM AWS pour être appelé (admin-initiate-auth) : pas
+    # exposé aux utilisateurs finaux via l'app publique, utile pour les tests/ops en CLI.
+    "ALLOW_ADMIN_USER_PASSWORD_AUTH"
   ]
 
   access_token_validity  = 1   # heures - court, pour limiter la fenêtre d'exploitation d'un token volé
