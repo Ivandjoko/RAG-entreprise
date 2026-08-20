@@ -34,10 +34,11 @@ resource "aws_s3_bucket_versioning" "tfstate" {
   versioning_configuration { status = "Enabled" }
 }
 
-# tfsec:ignore:aws-s3-encryption-customer-key: CMK dediee disproportionnee pour un bucket
-# de state Terraform du bootstrap - "aws:kms" (cle AWS-managed) chiffre deja au repos ;
-# meme raisonnement que le skip DynamoDB juste au-dessus (pas de donnee sensible propre au
-# bucket, juste des states Terraform deja proteges par ailleurs - IAM, versioning, PAB).
+# CMK dediee disproportionnee pour un bucket de state Terraform du bootstrap - "aws:kms"
+# (cle AWS-managed) chiffre deja au repos ; meme raisonnement que le skip DynamoDB juste
+# au-dessus (pas de donnee sensible propre au bucket, deja protege par ailleurs - IAM,
+# versioning, PAB).
+# tfsec:ignore:aws-s3-encryption-customer-key
 resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
   rule {
