@@ -8,9 +8,29 @@ data "aws_iam_policy_document" "permissions_boundary" {
       "s3:*", "dynamodb:*", "lambda:*", "bedrock:*", "aoss:*",
       "apigateway:*", "cognito-idp:*", "wafv2:*",
       "events:*", "sqs:*", "states:*", "kms:*", "logs:*",
-      "ec2:Describe*", "ec2:*Vpc*", "ec2:*Subnet*", "ec2:*SecurityGroup*", "ec2:*VpcEndpoint*"
+      "ec2:Describe*", "ec2:*Vpc*", "ec2:*Subnet*", "ec2:*SecurityGroup*", "ec2:*VpcEndpoint*",
+      # Oublie lors du premier passage de cette boundary : creer une VPC (ou tout autre
+      # ressource EC2 avec un bloc "tags") appelle implicitement ec2:CreateTags - sans cette
+      # action, meme une identity policy qui autorise ec2:*Vpc* se fait bloquer par la
+      # boundary (erreur "no permissions boundary allows the ec2:CreateTags action").
+      "ec2:*Tags*"
     ]
     resources = ["*"]
+  }
+
+  # Gestion des roles IAM applicatifs (Lambda, VPC flow logs, API Gateway CloudWatch...) crees
+  # par Terraform - scope volontairement plus etroit que le reste (role/rag-* uniquement),
+  # jamais "*", meme si le reste de cette boundary est deja tres large.
+  statement {
+    sid    = "AllowProjectIAMRoleManagement"
+    effect = "Allow"
+    actions = [
+      "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole",
+      "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
+      "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+      "iam:TagRole", "iam:PassRole"
+    ]
+    resources = ["arn:aws:iam::*:role/rag-*"]
   }
 
   # Le verrou principal : même un rôle créé par Terraform ne peut JAMAIS

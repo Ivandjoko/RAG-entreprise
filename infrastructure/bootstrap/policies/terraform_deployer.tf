@@ -42,11 +42,14 @@ data "aws_iam_policy_document" "terraform_deployer" {
   }
 
   # Compute
+  # "rag-*" et non "rag-platform-*" : les fonctions reelles sont nommees rag-ingestion-*,
+  # rag-orchestrator-*, rag-index-bootstrap-* (jamais "rag-platform-*") - incoherence de
+  # nommage decouverte au premier vrai apply via le role CI scope (jamais exerce avant).
   statement {
     sid       = "Compute"
     effect    = "Allow"
     actions   = ["lambda:*"]
-    resources = ["arn:aws:lambda:*:*:function:rag-platform-*"]
+    resources = ["arn:aws:lambda:*:*:function:rag-*"]
   }
 
   # API et auth
@@ -62,14 +65,16 @@ data "aws_iam_policy_document" "terraform_deployer" {
   }
 
   # Orchestration événementielle
+  # "rag-*" : la regle EventBridge (rag-document-uploaded-*) et la file SQS DLQ
+  # (rag-ingestion-dlq-*) ne suivent pas non plus la convention "rag-platform-*".
   statement {
     sid     = "Events"
     effect  = "Allow"
     actions = ["events:*", "sqs:*", "states:*"]
     resources = [
-      "arn:aws:events:*:*:rule/rag-platform-*",
-      "arn:aws:sqs:*:*:rag-platform-*",
-      "arn:aws:states:*:*:stateMachine:rag-platform-*"
+      "arn:aws:events:*:*:rule/rag-*",
+      "arn:aws:sqs:*:*:rag-*",
+      "arn:aws:states:*:*:stateMachine:rag-*"
     ]
   }
 
@@ -90,6 +95,9 @@ data "aws_iam_policy_document" "terraform_deployer" {
   }
 
   # IAM — la partie sensible, très encadrée (voir permissions boundary ci-dessous)
+  # "rag-*" : les roles applicatifs (rag-orchestrator-lambda-*, rag-ingestion-lambda-*,
+  # rag-vpc-flow-logs-*, rag-api-gateway-cloudwatch-*) ne suivent pas non plus
+  # "rag-platform-*".
   statement {
     sid    = "IAMScoped"
     effect = "Allow"
@@ -99,7 +107,7 @@ data "aws_iam_policy_document" "terraform_deployer" {
       "iam:AttachRolePolicy", "iam:DetachRolePolicy",
       "iam:TagRole", "iam:PassRole"
     ]
-    resources = ["arn:aws:iam::*:role/rag-platform-*"]
+    resources = ["arn:aws:iam::*:role/rag-*"]
     condition {
       # Verrou structurel : impossible de créer/modifier un rôle SANS lui attacher
       # la permissions boundary définie plus bas - même si l'action est autorisée ci-dessus
