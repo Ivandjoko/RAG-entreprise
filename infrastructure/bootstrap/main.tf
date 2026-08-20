@@ -129,7 +129,12 @@ resource "aws_iam_role" "github_actions" {
     Statement = [{
       Effect    = "Allow"
       Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
-      Action    = "sts:AssumeRoleWithWebIdentity"
+      # sts:TagSession est requis en plus de AssumeRoleWithWebIdentity : depuis v2,
+      # aws-actions/configure-aws-credentials attache des tags de session (repo, ref,
+      # workflow...) par defaut. Sans cette action, TOUT l'appel est rejete - avec le meme
+      # message generique "Not authorized to perform sts:AssumeRoleWithWebIdentity" qui ne
+      # mentionne jamais TagSession, rendant la vraie cause invisible sans les logs debug.
+      Action = ["sts:AssumeRoleWithWebIdentity", "sts:TagSession"]
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
