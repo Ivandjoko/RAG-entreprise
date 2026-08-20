@@ -50,6 +50,16 @@ data "aws_iam_policy_document" "permissions_boundary" {
     resources = ["arn:aws:iam::*:policy/rag-platform-permissions-boundary"]
   }
 
+  # `data "aws_iam_policy"` (recherche par nom) appelle iam:ListPolicies en interne avant
+  # iam:GetPolicy - cette action ne supporte pas le scoping par ARN (liste tout le compte),
+  # d'ou "*" en resource malgre le reste de cette policy plutot scope.
+  statement {
+    sid       = "AllowListPoliciesForBoundaryLookup"
+    effect    = "Allow"
+    actions   = ["iam:ListPolicies"]
+    resources = ["*"]
+  }
+
   # Le verrou principal : même un rôle créé par Terraform ne peut JAMAIS
   # faire d'action IAM destructrice/élévatrice, quelle que soit sa policy attachée
   statement {

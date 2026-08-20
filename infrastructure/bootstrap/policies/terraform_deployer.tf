@@ -138,6 +138,15 @@ data "aws_iam_policy_document" "terraform_deployer" {
     resources = [aws_iam_policy.permissions_boundary.arn]
   }
 
+  # `data "aws_iam_policy"` (recherche par nom) appelle iam:ListPolicies en interne avant
+  # iam:GetPolicy - cette action ne supporte pas le scoping par ARN (liste tout le compte).
+  statement {
+    sid       = "AllowListPoliciesForBoundaryLookup"
+    effect    = "Allow"
+    actions   = ["iam:ListPolicies"]
+    resources = ["*"]
+  }
+
   statement {
     sid    = "DenyBoundaryTampering"
     effect = "Deny"
