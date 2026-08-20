@@ -114,6 +114,17 @@ jobs:
         with:
           name: tfplan-dev
           path: infrastructure/environments/dev/tfplan
+      # Les data "archive_file" (code source des 3 Lambdas) sont zippees comme effet de
+      # bord de `terraform plan`, sur le disque de CE job - deploy_dev tourne sur une VM
+      # neuve et ne les a pas. Sans ca, "terraform apply tfplan" echoue en cherchant des
+      # fichiers zip qui n'existent que sur le runner de plan_dev.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda-src-zips-dev
+          path: |
+            infrastructure/modules/ingestion/build/ingestion_code.zip
+            infrastructure/modules/retrieval/build/index_bootstrap.zip
+            infrastructure/modules/retrieval/build/orchestrator.zip
 
   plan_staging:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/')
@@ -148,6 +159,15 @@ jobs:
         with:
           name: tfplan-staging
           path: infrastructure/environments/staging/tfplan
+      # Voir la note equivalente dans plan_dev : les zips de code source Lambda ne
+      # persistent pas entre jobs sans etre explicitement remontes en artefact.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda-src-zips-staging
+          path: |
+            infrastructure/modules/ingestion/build/ingestion_code.zip
+            infrastructure/modules/retrieval/build/index_bootstrap.zip
+            infrastructure/modules/retrieval/build/orchestrator.zip
 
   plan_prod:
     if: github.ref == 'refs/heads/main'
@@ -182,6 +202,15 @@ jobs:
         with:
           name: tfplan-prod
           path: infrastructure/environments/prod/tfplan
+      # Voir la note equivalente dans plan_dev : les zips de code source Lambda ne
+      # persistent pas entre jobs sans etre explicitement remontes en artefact.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda-src-zips-prod
+          path: |
+            infrastructure/modules/ingestion/build/ingestion_code.zip
+            infrastructure/modules/retrieval/build/index_bootstrap.zip
+            infrastructure/modules/retrieval/build/orchestrator.zip
 
   # ---------- deploy_dev ----------
   # needs: [plan_dev] suffit - plan_dev dépend déjà de `ci`, qui inclut security_scan
@@ -215,6 +244,12 @@ jobs:
         with:
           name: ingestion-layer
           path: infrastructure/modules/ingestion/build
+      # Restaure les zips de code source generes par plan_dev (voir la note dans plan_dev) -
+      # path "." pour preserver la meme arborescence relative qu'a l'upload.
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda-src-zips-dev
+          path: .
       - run: terraform init
         working-directory: infrastructure/environments/dev
       - run: terraform apply -auto-approve tfplan
@@ -290,6 +325,10 @@ jobs:
         with:
           name: ingestion-layer
           path: infrastructure/modules/ingestion/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda-src-zips-staging
+          path: .
       - run: terraform init
         working-directory: infrastructure/environments/staging
       - run: terraform apply -auto-approve tfplan
@@ -328,6 +367,10 @@ jobs:
         with:
           name: ingestion-layer
           path: infrastructure/modules/ingestion/build
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda-src-zips-prod
+          path: .
       - run: terraform init
         working-directory: infrastructure/environments/prod
       - run: terraform apply -auto-approve tfplan
