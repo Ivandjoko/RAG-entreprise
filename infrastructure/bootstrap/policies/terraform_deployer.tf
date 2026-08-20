@@ -141,7 +141,10 @@ data "aws_iam_policy_document" "terraform_deployer" {
       "iam:TagRole", "iam:PassRole",
       # ListRolePolicies = policies inline, ListAttachedRolePolicies = policies managees -
       # Terraform relit les deux apres chaque creation/modification de role.
-      "iam:ListRolePolicies", "iam:ListAttachedRolePolicies"
+      "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+      # Avant DeleteRole, verifie qu'aucun instance profile EC2 n'y est encore associe -
+      # requis meme si ce projet n'utilise pas d'instance profiles (Lambda uniquement).
+      "iam:ListInstanceProfilesForRole"
     ]
     resources = ["arn:aws:iam::*:role/rag-*"]
   }

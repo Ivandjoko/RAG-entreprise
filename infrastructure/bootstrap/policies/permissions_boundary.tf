@@ -39,7 +39,9 @@ data "aws_iam_policy_document" "permissions_boundary" {
       # Apres CreateRole, Terraform relit systematiquement l'etat reel du role (policies
       # inline ET managees attachees hors Terraform) - sans ces deux actions, cette
       # relecture echoue meme si le role vient d'etre cree avec succes.
-      "iam:ListRolePolicies", "iam:ListAttachedRolePolicies"
+      "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+      # Avant DeleteRole, verifie qu'aucun instance profile EC2 n'y est encore associe.
+      "iam:ListInstanceProfilesForRole"
     ]
     resources = ["arn:aws:iam::*:role/rag-*"]
   }
