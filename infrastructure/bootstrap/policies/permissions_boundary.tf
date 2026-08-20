@@ -35,7 +35,11 @@ data "aws_iam_policy_document" "permissions_boundary" {
       "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole",
       "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
       "iam:AttachRolePolicy", "iam:DetachRolePolicy",
-      "iam:TagRole", "iam:PassRole"
+      "iam:TagRole", "iam:PassRole",
+      # Apres CreateRole, Terraform relit systematiquement l'etat reel du role (policies
+      # inline attachees hors Terraform) - sans ListRolePolicies, cette relecture echoue
+      # meme si le role vient d'etre cree avec succes.
+      "iam:ListRolePolicies"
     ]
     resources = ["arn:aws:iam::*:role/rag-*"]
   }
