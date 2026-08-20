@@ -138,7 +138,14 @@ resource "aws_iam_role" "github_actions" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:environment:${var.environment_suffix}"
+        }
+        # GitHub inclut desormais les IDs numeriques immuables de l'org et du repo dans le
+        # sub claim (ex: "repo:Ivandjoko@169819778/RAG-entreprise@1320425832:environment:dev"),
+        # pas juste "org/repo" comme documente historiquement - confirme en decodant le token
+        # OIDC reel envoye par un run CI. StringLike + wildcard sur les IDs plutot que de les
+        # coder en dur ici.
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}@*/${var.github_repo}@*:environment:${var.environment_suffix}"
         }
       }
     }]
