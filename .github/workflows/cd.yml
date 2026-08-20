@@ -8,7 +8,8 @@ on:
   workflow_dispatch: {}
 
 env:
-  TF_VERSION: "1.7.5"
+  # >= 1.9 : requis par backend.tf et versions.tf de tous les modules (voir required_version)
+  TF_VERSION: "1.9.8"
   AWS_REGION: "eu-west-3"
 
 permissions:
