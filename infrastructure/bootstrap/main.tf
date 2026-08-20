@@ -25,6 +25,8 @@ resource "aws_s3_bucket" "tfstate" {
   # S3 (GetObject/PutObject) sur ce bucket, sans infra additionnelle a maintenir ici.
   # checkov:skip=CKV2_AWS_62: bucket de state Terraform, aucun consommateur d'evenements
   # (pas de pipeline de traitement a declencher sur upload de state).
+  # tfsec:ignore:aws-s3-enable-bucket-logging: meme raisonnement que le skip checkov
+  # CKV_AWS_18 ci-dessus (CloudTrail deja actif au niveau compte).
 }
 
 resource "aws_s3_bucket_versioning" "tfstate" {
@@ -32,6 +34,10 @@ resource "aws_s3_bucket_versioning" "tfstate" {
   versioning_configuration { status = "Enabled" }
 }
 
+# tfsec:ignore:aws-s3-encryption-customer-key: CMK dediee disproportionnee pour un bucket
+# de state Terraform du bootstrap - "aws:kms" (cle AWS-managed) chiffre deja au repos ;
+# meme raisonnement que le skip DynamoDB juste au-dessus (pas de donnee sensible propre au
+# bucket, juste des states Terraform deja proteges par ailleurs - IAM, versioning, PAB).
 resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
   rule {
@@ -80,9 +86,18 @@ resource "aws_dynamodb_table" "tfstate_lock" {
     enabled = true
   }
 
+  # Chiffrement explicite (cle AWS-owned, gratuite) : sans ce bloc, certains scanners
+  # (tfsec) signalent l'absence de config meme si DynamoDB chiffre deja tout au repos par
+  # defaut depuis 2018 - l'expliciter coute rien et satisfait le check.
+  server_side_encryption {
+    enabled = true
+  }
+
   # checkov:skip=CKV_AWS_119: table de lock Terraform (aucune donnee sensible, juste un
   # LockID ephemere) - chiffrement AWS-owned deja actif par defaut ; une CMK dediee au seul
   # bootstrap serait disproportionnee pour cette table.
+  # tfsec:ignore:aws-dynamodb-table-customer-key: meme raisonnement que le skip checkov
+  # ci-dessus - CMK disproportionnee pour une table de lock ephemere sans donnee sensible.
 }
 
 # 3. Le fournisseur OIDC GitHub

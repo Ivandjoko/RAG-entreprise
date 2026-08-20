@@ -56,9 +56,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # aws-iam-no-policy-wildcards : meme categorie que CKV_AWS_356/107/108/109/110/111
+      # exclus cote checkov ci-dessus - les policies IAM du bootstrap (permissions boundary,
+      # terraform_deployer) couvrent des dizaines d'actions AWS qui ne supportent pas le
+      # scoping par ARN, ou agissent comme un plafond (boundary) plutot qu'une attribution
+      # directe. tfsec et checkov sont deux outils distincts sans config de skip partagee,
+      # d'ou la re-exclusion ici plutot que des dizaines de commentaires inline repetitifs.
       - uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: infrastructure
+          additional_args: --exclude=aws-iam-no-policy-wildcards
 
   lint_python:
     runs-on: ubuntu-latest
