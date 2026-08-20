@@ -46,7 +46,6 @@ module "retrieval" {
   log_retention_days              = var.retention_days
   collection_name                 = "rag-vectors-${var.environment}"
   index_name                      = "rag-index-${var.environment}"
-  opensearch_instance_type        = "OCU" # Serverless = pas d'instance à dimensionner
   # metadata_table_name : pas encore câblable, aucune table DynamoDB n'existe côté Terraform
   # (voir rapport d'audit).
 }

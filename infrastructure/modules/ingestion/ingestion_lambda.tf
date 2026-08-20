@@ -47,8 +47,8 @@ resource "aws_lambda_function" "ingestion" {
 
   # Pas de reserved_concurrent_executions ici : le quota de concurrence Lambda de ce compte
   # est trop bas pour réserver quoi que ce soit sans faire passer le pool non-réservé sous
-  # le minimum AWS de 10. À réactiver une fois un relèvement de quota demandé (voir
-  # var.ingestion_max_concurrency, toujours déclarée mais non câblée pour l'instant).
+  # le minimum AWS de 10. À réintroduire (avec une variable dédiée) une fois un relèvement
+  # de quota demandé.
 }
 
 resource "aws_cloudwatch_log_group" "ingestion" {

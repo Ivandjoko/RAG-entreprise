@@ -49,12 +49,6 @@ variable "guardrail_version" {
   type = string
 }
 
-variable "opensearch_instance_type" {
-  type        = string
-  default     = "OCU"
-  description = "Sans effet pour l'instant : OpenSearch Serverless ne se dimensionne pas par type d'instance (conservé pour compat descendante de l'appelant)."
-}
-
 variable "kms_audit_key_arn" {
   type = string
 }

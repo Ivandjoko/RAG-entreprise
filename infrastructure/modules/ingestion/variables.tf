@@ -38,9 +38,3 @@ variable "log_retention_days" {
   type    = number
   default = 30
 }
-
-variable "ingestion_max_concurrency" {
-  type        = number
-  default     = 5
-  description = "Limite les exécutions simultanées pour ne pas saturer le throttling Bedrock (embeddings) sur un upload massif"
-}
