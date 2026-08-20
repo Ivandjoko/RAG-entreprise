@@ -13,7 +13,14 @@ data "aws_iam_policy_document" "permissions_boundary" {
       # ressource EC2 avec un bloc "tags") appelle implicitement ec2:CreateTags - sans cette
       # action, meme une identity policy qui autorise ec2:*Vpc* se fait bloquer par la
       # boundary (erreur "no permissions boundary allows the ec2:CreateTags action").
-      "ec2:*Tags*"
+      "ec2:*Tags*",
+      # Table de routage privee (modules/networking) - aucun des patterns ci-dessus ne
+      # couvre "RouteTable".
+      "ec2:*RouteTable*",
+      # aws_opensearchserverless_vpc_endpoint gere en interne des hosted zones Route53
+      # privees (meme mecanique que les VPC interface endpoints standard) - sans ces
+      # actions, la creation de l'endpoint AOSS reste bloquee en FAILED indefiniment.
+      "route53:*"
     ]
     resources = ["*"]
   }
@@ -31,6 +38,16 @@ data "aws_iam_policy_document" "permissions_boundary" {
       "iam:TagRole", "iam:PassRole"
     ]
     resources = ["arn:aws:iam::*:role/rag-*"]
+  }
+
+  # Necessaire pour que les modules applicatifs (security/networking/api) puissent resoudre
+  # l'ARN de cette boundary via `data "aws_iam_policy"` et l'attacher a leurs propres roles -
+  # condition requise par terraform_deployer.IAMScoped pour tout iam:CreateRole sur role/rag-*.
+  statement {
+    sid       = "AllowReadOwnBoundaryPolicy"
+    effect    = "Allow"
+    actions   = ["iam:GetPolicy"]
+    resources = ["arn:aws:iam::*:policy/rag-platform-permissions-boundary"]
   }
 
   # Le verrou principal : même un rôle créé par Terraform ne peut JAMAIS

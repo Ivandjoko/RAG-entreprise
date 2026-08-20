@@ -86,6 +86,18 @@ data "aws_iam_policy_document" "terraform_deployer" {
     resources = ["*"] # les clés n'existent pas encore au premier apply, donc pas d'ARN à scoper a priori
   }
 
+  # aws_opensearchserverless_vpc_endpoint gere en interne des hosted zones Route53 privees
+  # (meme mecanique que les VPC interface endpoints standard) - sans ca, l'endpoint reste
+  # bloque en FAILED indefiniment. Deja couvert par PowerUserAccess aujourd'hui (encore
+  # attache au role CI), mais ajoute ici pour que ce policy scope reste autosuffisant une
+  # fois PowerUserAccess retire (voir memoire projet).
+  statement {
+    sid       = "Route53ForVpcEndpoints"
+    effect    = "Allow"
+    actions   = ["route53:*"]
+    resources = ["*"]
+  }
+
   # Observabilité
   statement {
     sid       = "Observability"
@@ -115,6 +127,15 @@ data "aws_iam_policy_document" "terraform_deployer" {
       variable = "iam:PermissionsBoundary"
       values   = [aws_iam_policy.permissions_boundary.arn]
     }
+  }
+
+  # Necessaire pour que les modules applicatifs (security/networking/api) puissent resoudre
+  # l'ARN de la boundary via `data "aws_iam_policy"` avant de l'attacher a leurs propres roles.
+  statement {
+    sid       = "AllowReadOwnBoundaryPolicy"
+    effect    = "Allow"
+    actions   = ["iam:GetPolicy"]
+    resources = [aws_iam_policy.permissions_boundary.arn]
   }
 
   statement {

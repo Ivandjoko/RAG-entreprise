@@ -4,6 +4,7 @@ resource "aws_iam_role" "ingestion_lambda" {
   name               = "rag-ingestion-lambda-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
   # ↑ cette policy dit "seul le service Lambda peut endosser ce rôle" (voir plus bas)
+  permissions_boundary = data.aws_iam_policy.permissions_boundary.arn
 }
 
 data "aws_iam_policy_document" "lambda_assume_role" {

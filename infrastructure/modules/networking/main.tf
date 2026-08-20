@@ -1,6 +1,13 @@
 # modules/networking/main.tf
 data "aws_region" "current" {}
 
+# Resolue par nom plutot que passee en variable : cette policy vit dans le state du
+# bootstrap (root Terraform separe), pas dans celui-ci. Requise sur tout role rag-* pour
+# satisfaire la condition iam:PermissionsBoundary de la policy terraform_deployer du CI.
+data "aws_iam_policy" "permissions_boundary" {
+  name = "rag-platform-permissions-boundary"
+}
+
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -58,8 +65,9 @@ data "aws_iam_policy_document" "flow_logs_assume_role" {
 }
 
 resource "aws_iam_role" "vpc_flow_logs" {
-  name               = "rag-vpc-flow-logs-${var.environment}"
-  assume_role_policy = data.aws_iam_policy_document.flow_logs_assume_role.json
+  name                 = "rag-vpc-flow-logs-${var.environment}"
+  assume_role_policy   = data.aws_iam_policy_document.flow_logs_assume_role.json
+  permissions_boundary = data.aws_iam_policy.permissions_boundary.arn
 }
 
 resource "aws_iam_role_policy" "vpc_flow_logs" {

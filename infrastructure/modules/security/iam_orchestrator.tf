@@ -1,8 +1,9 @@
 # modules/security/iam_orchestrator.tf
 
 resource "aws_iam_role" "orchestrator_lambda" {
-  name               = "rag-orchestrator-lambda-${var.environment}"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+  name                 = "rag-orchestrator-lambda-${var.environment}"
+  assume_role_policy   = data.aws_iam_policy_document.lambda_assume_role.json
+  permissions_boundary = data.aws_iam_policy.permissions_boundary.arn
 }
 
 data "aws_iam_policy_document" "orchestrator_permissions" {
