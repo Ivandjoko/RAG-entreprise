@@ -13,3 +13,6 @@ variable "azs" {
 variable "log_retention_days" {
   type = number
 }
+variable "kms_audit_key_arn" {
+  type = string
+}

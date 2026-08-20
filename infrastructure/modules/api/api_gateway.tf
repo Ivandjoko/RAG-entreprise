@@ -99,13 +99,18 @@ resource "aws_api_gateway_deployment" "main" {
   }
 }
 
-# checkov:skip=CKV2_AWS_51: le mTLS/certificat client sert a verifier que l'appelant parle
-# a un backend HTTP tiers de confiance - integration AWS_PROXY vers Lambda, invocation
-# interne signee AWS de bout en bout, pas de backend HTTP externe a authentifier.
 resource "aws_api_gateway_stage" "main" {
   deployment_id = aws_api_gateway_deployment.main.id
   rest_api_id   = aws_api_gateway_rest_api.main.id
   stage_name    = var.environment
+
+  # checkov:skip=CKV2_AWS_51: le mTLS/certificat client sert a verifier que l'appelant parle
+  # a un backend HTTP tiers de confiance - integration AWS_PROXY vers Lambda, invocation
+  # interne signee AWS de bout en bout, pas de backend HTTP externe a authentifier.
+  # checkov:skip=CKV2_AWS_77: la regle AWSManagedRulesKnownBadInputsRuleSet (couvre Log4j)
+  # est deja presente dans aws_wafv2_web_acl.main (waf.tf) et associee via
+  # aws_wafv2_web_acl_association.api - ce check graphe ne resout pas la reference
+  # count-indexee ([0]) a travers l'association, meme quand la regle existe bien.
 
   # Logs d'accès structurés, essentiels pour l'audit et le debug
   access_log_settings {

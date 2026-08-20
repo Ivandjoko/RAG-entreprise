@@ -13,16 +13,17 @@ provider "aws" {
 }
 
 # 1. Bucket S3 pour les states Terraform des vrais environnements
-# checkov:skip=CKV_AWS_144: replication cross-region disproportionnee pour un bucket de
-# state Terraform en dev/staging/prod - le versioning + la sauvegarde locale par compte
-# (terraform.{env}.tfstate) couvrent deja le risque de perte accidentelle.
-# checkov:skip=CKV_AWS_18: logging d'acces S3 necessiterait un bucket de logs dedie
-# supplementaire - le CloudTrail deja actif au niveau compte couvre l'audit des API calls
-# S3 (GetObject/PutObject) sur ce bucket, sans infra additionnelle a maintenir ici.
-# checkov:skip=CKV2_AWS_62: bucket de state Terraform, aucun consommateur d'evenements
-# (pas de pipeline de traitement a declencher sur upload de state).
 resource "aws_s3_bucket" "tfstate" {
   bucket = "acme-rag-tfstate-${var.environment_suffix}"
+
+  # checkov:skip=CKV_AWS_144: replication cross-region disproportionnee pour un bucket de
+  # state Terraform en dev/staging/prod - le versioning + la sauvegarde locale par compte
+  # (terraform.{env}.tfstate) couvrent deja le risque de perte accidentelle.
+  # checkov:skip=CKV_AWS_18: logging d'acces S3 necessiterait un bucket de logs dedie
+  # supplementaire - le CloudTrail deja actif au niveau compte couvre l'audit des API calls
+  # S3 (GetObject/PutObject) sur ce bucket, sans infra additionnelle a maintenir ici.
+  # checkov:skip=CKV2_AWS_62: bucket de state Terraform, aucun consommateur d'evenements
+  # (pas de pipeline de traitement a declencher sur upload de state).
 }
 
 resource "aws_s3_bucket_versioning" "tfstate" {

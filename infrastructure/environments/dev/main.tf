@@ -4,6 +4,7 @@ module "networking" {
   environment        = var.environment
   vpc_cidr           = var.vpc_cidr
   log_retention_days = var.retention_days
+  kms_audit_key_arn  = module.security.kms_audit_key_arn
 }
 
 module "security" {

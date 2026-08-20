@@ -43,6 +43,7 @@ resource "aws_default_security_group" "main" {
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   name              = "/aws/vpc-flow-logs/rag-vpc-${var.environment}"
   retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_audit_key_arn
 }
 
 data "aws_iam_policy_document" "flow_logs_assume_role" {
