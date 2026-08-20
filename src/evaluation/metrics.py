@@ -1,8 +1,9 @@
 # metrics.py
-from ragas import evaluate, EvaluationDataset
-from ragas.metrics import Faithfulness, ContextPrecision, ContextRecall, AnswerRelevancy
-from ragas.llms import LangchainLLMWrapper
 from langchain_aws import ChatBedrock
+from ragas import EvaluationDataset, evaluate
+from ragas.llms import LangchainLLMWrapper
+from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
+
 
 def build_ragas_evaluator_llm():
     """
@@ -12,7 +13,9 @@ def build_ragas_evaluator_llm():
     """
     # eu-west-3 n'a pas d'accès "In-Region" à ce modèle sur Bedrock - profil d'inférence
     # cross-region "eu" requis (voir aussi generation.py, même remarque).
-    bedrock_llm = ChatBedrock(model_id="eu.anthropic.claude-sonnet-4-6", region_name="eu-west-3")
+    bedrock_llm = ChatBedrock(
+        model_id="eu.anthropic.claude-sonnet-4-6", region_name="eu-west-3"
+    )
     return LangchainLLMWrapper(bedrock_llm)
 
 

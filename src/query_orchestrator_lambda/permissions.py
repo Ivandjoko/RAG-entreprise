@@ -5,6 +5,7 @@ from botocore.config import Config
 # Client réutilisé entre invocations (cold start optimisé) - jamais recréé dans le handler
 _dynamodb = boto3.resource("dynamodb", config=Config(retries={"max_attempts": 3}))
 
+
 def get_user_permissions(user_id: str, table_name: str) -> list[str]:
     """
     Retourne la liste des tags de permission auxquels l'utilisateur a accès.

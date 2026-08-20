@@ -28,7 +28,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
       sse_algorithm     = "aws:kms"
       kms_master_key_id = var.kms_data_key_arn
     }
-    bucket_key_enabled = true   # réduit les appels KMS facturés, sans affaiblir le chiffrement
+    bucket_key_enabled = true # réduit les appels KMS facturés, sans affaiblir le chiffrement
   }
 }
 
@@ -56,9 +56,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "documents" {
   rule {
     id     = "expire-old-versions"
     status = "Enabled"
-    filter {}   # règle applicable à tous les objets du bucket
+    filter {} # règle applicable à tous les objets du bucket
     noncurrent_version_expiration {
       noncurrent_days = 90
+    }
+  }
+
+  # Sans ça, un upload multipart interrompu (retry client, coupure réseau) laisse des
+  # parts orphelines facturées indéfiniment - jamais visibles dans le bucket normalement
+  rule {
+    id     = "abort-incomplete-uploads"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
     }
   }
 }

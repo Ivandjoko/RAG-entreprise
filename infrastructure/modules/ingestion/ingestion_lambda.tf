@@ -9,8 +9,8 @@ data "archive_file" "ingestion_code" {
 resource "aws_lambda_layer_version" "ingestion_deps" {
   layer_name          = "rag-ingestion-deps-${var.environment}"
   filename            = "${path.module}/build/ingestion_layer.zip"
-  compatible_runtimes  = ["python3.12"]
-  source_code_hash     = filebase64sha256("${path.module}/build/ingestion_layer.zip")
+  compatible_runtimes = ["python3.12"]
+  source_code_hash    = filebase64sha256("${path.module}/build/ingestion_layer.zip")
   # contient : opensearch-py, pypdf, python-docx, beautifulsoup4
 }
 
@@ -19,8 +19,8 @@ resource "aws_lambda_function" "ingestion" {
   role          = var.ingestion_lambda_role_arn
   handler       = "handler.handler"
   runtime       = "python3.12"
-  timeout       = 300     # jusqu'à 5 min : Textract sur un gros PDF scanné peut être lent
-  memory_size   = 1024    # plus élevé que l'orchestrateur : parsing PDF/DOCX consomme plus de mémoire
+  timeout       = 300  # jusqu'à 5 min : Textract sur un gros PDF scanné peut être lent
+  memory_size   = 1024 # plus élevé que l'orchestrateur : parsing PDF/DOCX consomme plus de mémoire
 
   filename         = data.archive_file.ingestion_code.output_path
   source_code_hash = data.archive_file.ingestion_code.output_base64sha256
@@ -36,8 +36,8 @@ resource "aws_lambda_function" "ingestion" {
   environment {
     variables = {
       OPENSEARCH_COLLECTION_ENDPOINT = var.opensearch_collection_endpoint
-      OPENSEARCH_INDEX_NAME           = var.opensearch_index_name
-      METADATA_TABLE_NAME             = aws_dynamodb_table.metadata.name
+      OPENSEARCH_INDEX_NAME          = var.opensearch_index_name
+      METADATA_TABLE_NAME            = aws_dynamodb_table.metadata.name
     }
   }
 

@@ -1,6 +1,7 @@
 # chunking.py
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
+
 
 @dataclass
 class Chunk:
@@ -45,7 +46,7 @@ def _chunk_fixed(text: str, max_tokens: int, overlap_tokens: int) -> list[Chunk]
     while start < len(text):
         end = start + max_chars
         chunks.append(Chunk(text=text[start:end], chunk_index=index))
-        start = end - overlap_chars   # chevauchement pour ne pas couper une idée en deux
+        start = end - overlap_chars  # chevauchement pour ne pas couper une idée en deux
         index += 1
     return chunks
 
@@ -88,14 +89,16 @@ def _chunk_hierarchical(text: str, max_tokens: int, overlap_tokens: int) -> list
     et garde le titre de section attaché à chaque chunk pour l'inclure dans le contexte.
     Idéal pour contrats, spécifications techniques, documentation structurée.
     """
-    section_pattern = re.compile(r"^(#{1,3}\s+.+|^\d+(\.\d+)*\.?\s+[A-ZÀ-Ü].+)$", re.MULTILINE)
+    section_pattern = re.compile(
+        r"^(#{1,3}\s+.+|^\d+(\.\d+)*\.?\s+[A-ZÀ-Ü].+)$", re.MULTILINE
+    )
     sections = []
     last_pos = 0
     current_title = None
 
     for match in section_pattern.finditer(text):
         if last_pos < match.start():
-            sections.append((current_title, text[last_pos:match.start()]))
+            sections.append((current_title, text[last_pos : match.start()]))
         current_title = match.group().strip()
         last_pos = match.end()
     sections.append((current_title, text[last_pos:]))
@@ -105,7 +108,9 @@ def _chunk_hierarchical(text: str, max_tokens: int, overlap_tokens: int) -> list
     for title, content in sections:
         # Chaque section est ensuite chunkée sémantiquement si elle dépasse max_tokens
         for sub_chunk in _chunk_semantic(content, max_tokens, overlap_tokens):
-            chunks.append(Chunk(text=sub_chunk.text, chunk_index=index, section_title=title))
+            chunks.append(
+                Chunk(text=sub_chunk.text, chunk_index=index, section_title=title)
+            )
             index += 1
 
     return chunks

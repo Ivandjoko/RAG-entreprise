@@ -27,8 +27,8 @@ data "aws_iam_policy_document" "ingestion_permissions" {
   # ne peut pas créer les ENI nécessaires pour joindre les subnets privés - équivalent de
   # la policy managée AWSLambdaVPCAccessExecutionRole, appliqué ici en scope custom.
   statement {
-    sid     = "VPCNetworkInterface"
-    effect  = "Allow"
+    sid    = "VPCNetworkInterface"
+    effect = "Allow"
     actions = [
       "ec2:CreateNetworkInterface",
       "ec2:DescribeNetworkInterfaces",
@@ -36,14 +36,14 @@ data "aws_iam_policy_document" "ingestion_permissions" {
       "ec2:AssignPrivateIpAddresses",
       "ec2:UnassignPrivateIpAddresses"
     ]
-    resources = ["*"]  # ces actions EC2 ne supportent pas le scoping par ARN de ressource
+    resources = ["*"] # ces actions EC2 ne supportent pas le scoping par ARN de ressource
   }
 
   statement {
-    sid     = "XRayTracing"
-    effect  = "Allow"
-    actions = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
-    resources = ["*"]  # X-Ray ne supporte pas le scoping par ARN sur ces actions
+    sid       = "XRayTracing"
+    effect    = "Allow"
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"] # X-Ray ne supporte pas le scoping par ARN sur ces actions
   }
 
   statement {
@@ -62,9 +62,9 @@ data "aws_iam_policy_document" "ingestion_permissions" {
   # circulaire entre les deux modules.
 
   statement {
-    sid     = "DecryptData"
-    effect  = "Allow"
-    actions = ["kms:Decrypt", "kms:GenerateDataKey"]
+    sid       = "DecryptData"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt", "kms:GenerateDataKey"]
     resources = [aws_kms_key.data.arn]
   }
 

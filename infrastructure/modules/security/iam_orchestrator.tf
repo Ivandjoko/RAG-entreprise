@@ -13,8 +13,8 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
   # ne peut pas créer les ENI nécessaires pour joindre les subnets privés - équivalent de
   # la policy managée AWSLambdaVPCAccessExecutionRole, appliqué ici en scope custom.
   statement {
-    sid     = "VPCNetworkInterface"
-    effect  = "Allow"
+    sid    = "VPCNetworkInterface"
+    effect = "Allow"
     actions = [
       "ec2:CreateNetworkInterface",
       "ec2:DescribeNetworkInterfaces",
@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
       "ec2:AssignPrivateIpAddresses",
       "ec2:UnassignPrivateIpAddresses"
     ]
-    resources = ["*"]  # ces actions EC2 ne supportent pas le scoping par ARN de ressource
+    resources = ["*"] # ces actions EC2 ne supportent pas le scoping par ARN de ressource
   }
 
   statement {
@@ -47,16 +47,16 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
   # Titan (natif AWS), le premier InvokeModel nécessite que le rôle appelant puisse lui-même
   # vérifier/finaliser l'abonnement Marketplace, pas seulement bedrock:InvokeModel.
   statement {
-    sid     = "MarketplaceModelSubscription"
-    effect  = "Allow"
-    actions = ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe"]
-    resources = ["*"]  # ces actions Marketplace ne supportent pas le scoping par ARN
+    sid       = "MarketplaceModelSubscription"
+    effect    = "Allow"
+    actions   = ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe"]
+    resources = ["*"] # ces actions Marketplace ne supportent pas le scoping par ARN
   }
 
   statement {
-    sid     = "ApplyGuardrails"
-    effect  = "Allow"
-    actions = ["bedrock:ApplyGuardrail"]
+    sid       = "ApplyGuardrails"
+    effect    = "Allow"
+    actions   = ["bedrock:ApplyGuardrail"]
     resources = [aws_bedrock_guardrail.main.guardrail_arn]
   }
 
@@ -64,16 +64,16 @@ data "aws_iam_policy_document" "orchestrator_permissions" {
   # possède la table user_permissions - même raison que le grant aoss ci-dessus.
 
   statement {
-    sid     = "DecryptForReading"
-    effect  = "Allow"
-    actions = ["kms:Decrypt"]  # pas GenerateDataKey : cette Lambda ne chiffre jamais, elle déchiffre pour lire
+    sid       = "DecryptForReading"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"] # pas GenerateDataKey : cette Lambda ne chiffre jamais, elle déchiffre pour lire
     resources = [aws_kms_key.data.arn]
   }
   statement {
-    sid     = "XRayTracing"
-    effect  = "Allow"
-    actions = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
-    resources = ["*"]  # X-Ray ne supporte pas le scoping par ARN sur ces actions
+    sid       = "XRayTracing"
+    effect    = "Allow"
+    actions   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords"]
+    resources = ["*"] # X-Ray ne supporte pas le scoping par ARN sur ces actions
   }
 
   # Logs d'exécution Lambda + log group d'audit applicatif utilisé par audit.py

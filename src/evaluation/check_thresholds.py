@@ -1,7 +1,8 @@
 # check_thresholds.py
+import argparse
 import json
 import sys
-import argparse
+
 
 def check_thresholds(scores_path: str, min_faithfulness: float, min_recall: float):
     with open(scores_path) as f:
@@ -18,6 +19,7 @@ def check_thresholds(scores_path: str, min_faithfulness: float, min_recall: floa
         sys.exit(1)  # fait échouer le job GitHub Actions, bloque le déploiement prod
 
     print("Seuils respectés, déploiement autorisé.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -11,13 +11,13 @@ resource "aws_bedrock_guardrail" "main" {
   content_policy_config {
     filters_config {
       type            = "HATE"
-      input_strength  = var.guardrail_strength   # LOW / MEDIUM / HIGH selon l'environnement
+      input_strength  = var.guardrail_strength # LOW / MEDIUM / HIGH selon l'environnement
       output_strength = var.guardrail_strength
     }
     filters_config {
-      type            = "PROMPT_ATTACK"           # ← le filtre anti prompt-injection
-      input_strength  = "HIGH"                    # toujours HIGH ici, non négociable
-      output_strength = "NONE"                     # n'a pas de sens en sortie
+      type            = "PROMPT_ATTACK" # ← le filtre anti prompt-injection
+      input_strength  = "HIGH"          # toujours HIGH ici, non négociable
+      output_strength = "NONE"          # n'a pas de sens en sortie
     }
     filters_config {
       type            = "VIOLENCE"
@@ -38,7 +38,7 @@ resource "aws_bedrock_guardrail" "main" {
       action = "ANONYMIZE"
     }
     pii_entities_config {
-      type   = "US_SOCIAL_SECURITY_NUMBER"  # à adapter : NIR pour la France si besoin via regex custom
+      type   = "US_SOCIAL_SECURITY_NUMBER" # à adapter : NIR pour la France si besoin via regex custom
       action = "BLOCK"
     }
   }
@@ -58,11 +58,11 @@ resource "aws_bedrock_guardrail" "main" {
   contextual_grounding_policy_config {
     filters_config {
       type      = "GROUNDING"
-      threshold = 0.75   # si la réponse n'est pas suffisamment ancrée dans les documents, elle est bloquée
+      threshold = 0.75 # si la réponse n'est pas suffisamment ancrée dans les documents, elle est bloquée
     }
     filters_config {
       type      = "RELEVANCE"
-      threshold = 0.7    # bloque les réponses hors-sujet par rapport à la question posée
+      threshold = 0.7 # bloque les réponses hors-sujet par rapport à la question posée
     }
   }
 

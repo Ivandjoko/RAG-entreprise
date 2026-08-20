@@ -5,17 +5,20 @@ resource "aws_lambda_function" "index_bootstrap" {
   # Le rôle orchestrateur n'a qu'un accès en lecture (DescribeIndex/ReadDocument) sur la
   # policy d'accès OpenSearch (voir opensearch_access_policy.tf) - seul le rôle ingestion a
   # CreateIndex/UpdateIndex/WriteDocument, nécessaires pour créer l'index ici.
-  role          = var.ingestion_lambda_role_arn
-  handler       = "bootstrap.handler"
-  runtime       = "python3.12"
-  filename      = data.archive_file.index_bootstrap.output_path
-  timeout       = 60
+  role     = var.ingestion_lambda_role_arn
+  handler  = "bootstrap.handler"
+  runtime  = "python3.12"
+  filename = data.archive_file.index_bootstrap.output_path
+  timeout  = 60
   # Réutilise le layer de dépendances de l'orchestrateur (contient déjà opensearch-py) :
   # pas besoin d'un 3e layer/job de build pour cette Lambda de bootstrap ponctuelle.
   layers = [aws_lambda_layer_version.orchestrator_deps.arn]
   vpc_config {
     subnet_ids         = var.private_subnet_ids
     security_group_ids = [var.lambda_security_group_id]
+  }
+  tracing_config {
+    mode = "Active" # cohérence avec ingestion/orchestrator, coût négligeable pour un run ponctuel
   }
 }
 
@@ -43,8 +46,8 @@ resource "aws_lambda_invocation" "create_index" {
   function_name = aws_lambda_function.index_bootstrap.function_name
   input = jsonencode({
     collection_endpoint = aws_opensearchserverless_collection.vectors.collection_endpoint
-    index_name           = var.index_name
-    mapping_file          = "mapping.json"   # embarqué dans le zip de la Lambda
+    index_name          = var.index_name
+    mapping_file        = "mapping.json" # embarqué dans le zip de la Lambda
   })
 
   depends_on = [time_sleep.wait_for_iam_propagation]

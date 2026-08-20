@@ -44,7 +44,7 @@ module "retrieval" {
   log_retention_days              = var.retention_days
   collection_name                 = "rag-vectors-${var.environment}"
   index_name                      = "rag-index-${var.environment}"
-  opensearch_instance_type        = "OCU"   # Serverless = pas d'instance à dimensionner
+  opensearch_instance_type        = "OCU" # Serverless = pas d'instance à dimensionner
 }
 
 module "api" {

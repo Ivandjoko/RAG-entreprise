@@ -1,12 +1,13 @@
 # handler.py
-import os
 import json
+import os
 import time
-from permissions import get_user_permissions
-from guardrails import check_input, check_output, ContentBlockedException
-from retrieval import embed_query, hybrid_search, _get_opensearch_client
-from generation import generate_answer
+
 from audit import log_query
+from generation import generate_answer
+from guardrails import ContentBlockedException, check_input, check_output
+from permissions import get_user_permissions
+from retrieval import _get_opensearch_client, embed_query, hybrid_search
 
 # Variables d'environnement injectées par Terraform (jamais codées en dur)
 GUARDRAIL_ID = os.environ["GUARDRAIL_ID"]
@@ -29,7 +30,9 @@ def handler(event, context):
         # user_id/question sont extraits DANS le try : une requête malformée (JSON invalide,
         # claims Cognito absentes) doit renvoyer une erreur propre, jamais une exception non
         # gérée qui remonterait un traceback brut au client via API Gateway.
-        user_id = event["requestContext"]["authorizer"]["claims"]["sub"]  # injecté par Cognito
+        user_id = event["requestContext"]["authorizer"]["claims"][
+            "sub"
+        ]  # injecté par Cognito
         question = json.loads(event["body"])["question"]
         print(f"[0/6] user_id={user_id} question={question!r}")
 
@@ -50,8 +53,7 @@ def handler(event, context):
         query_vector = embed_query(question)
         print("[3/6] OK - appel OpenSearch (hybrid_search)...")
         top_chunks = hybrid_search(
-            question, query_vector, allowed_permissions,
-            _opensearch_client, INDEX_NAME
+            question, query_vector, allowed_permissions, _opensearch_client, INDEX_NAME
         )
         print(f"[3/6] OK - {len(top_chunks)} chunks retenus")
 
@@ -72,35 +74,49 @@ def handler(event, context):
             question=question,
             sources=[c["source"] for c in top_chunks],
             latency_ms=int((time.time() - start_time) * 1000),
-            status="success"
+            status="success",
         )
 
         return {
             "statusCode": 200,
-            "body": json.dumps({
-                "answer": safe_answer,
-                "sources": list({c["source"] for c in top_chunks})  # dédupliquées
-            })
+            "body": json.dumps(
+                {
+                    "answer": safe_answer,
+                    "sources": list({c["source"] for c in top_chunks}),  # dédupliquées
+                }
+            ),
         }
 
     except ContentBlockedException:
         print("[BLOCKED] Contenu bloque par le Guardrail")
-        log_query(user_id=user_id, question=question, sources=[],
-                   latency_ms=int((time.time() - start_time) * 1000), status="blocked")
+        log_query(
+            user_id=user_id,
+            question=question,
+            sources=[],
+            latency_ms=int((time.time() - start_time) * 1000),
+            status="blocked",
+        )
         return {
             "statusCode": 400,
-            "body": json.dumps({"error": "Votre requête n'a pas pu être traitée."})
+            "body": json.dumps({"error": "Votre requête n'a pas pu être traitée."}),
         }
 
-    except Exception as e:
+    # dernier recours du handler Lambda : ne doit jamais laisser une exception s'echapper
+    except Exception as e:  # noqa: BLE001
         # Erreur inattendue : on log l'erreur complète côté CloudWatch pour debug,
         # mais on ne renvoie JAMAIS le détail technique à l'utilisateur (fuite d'info)
         # print() explicite car log_query() écrit dans un log group séparé
         # (/aws/rag-platform/query-audit), pas dans le log stream de la fonction elle-même.
         print(f"[ERROR] {type(e).__name__}: {e}")
-        log_query(user_id=user_id, question=question, sources=[],
-                   latency_ms=int((time.time() - start_time) * 1000), status="error", error=str(e))
+        log_query(
+            user_id=user_id,
+            question=question,
+            sources=[],
+            latency_ms=int((time.time() - start_time) * 1000),
+            status="error",
+            error=str(e),
+        )
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Une erreur est survenue, réessayez."})
+            "body": json.dumps({"error": "Une erreur est survenue, réessayez."}),
         }

@@ -24,7 +24,7 @@ resource "aws_opensearchserverless_security_policy" "network" {
     {
       Rules = [
         { ResourceType = "collection", Resource = ["collection/${var.collection_name}"] },
-        { ResourceType = "dashboard",  Resource = ["collection/${var.collection_name}"] }
+        { ResourceType = "dashboard", Resource = ["collection/${var.collection_name}"] }
       ]
       AllowFromPublic = false
       SourceVPCEs     = [aws_opensearchserverless_vpc_endpoint.vectors.id]

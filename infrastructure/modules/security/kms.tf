@@ -3,8 +3,8 @@
 # Clé pour les documents sources et l'index vectoriel (données "métier" sensibles)
 resource "aws_kms_key" "data" {
   description             = "Chiffrement des documents et de l'index vectoriel RAG - ${var.environment}"
-  deletion_window_in_days = 30          # délai de sécurité avant suppression définitive
-  enable_key_rotation     = true        # rotation automatique annuelle, exigée par la plupart des référentiels (ISO 27001, SOC2)
+  deletion_window_in_days = 30   # délai de sécurité avant suppression définitive
+  enable_key_rotation     = true # rotation automatique annuelle, exigée par la plupart des référentiels (ISO 27001, SOC2)
   policy                  = data.aws_iam_policy_document.kms_data_policy.json
 }
 

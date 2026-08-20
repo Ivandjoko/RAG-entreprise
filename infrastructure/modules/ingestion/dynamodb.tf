@@ -2,7 +2,7 @@
 
 resource "aws_dynamodb_table" "metadata" {
   name         = "rag-platform-metadata-${var.environment}"
-  billing_mode = "PAY_PER_REQUEST"   # pas de capacité à dimensionner à l'avance, adapté à un trafic imprévisible
+  billing_mode = "PAY_PER_REQUEST" # pas de capacité à dimensionner à l'avance, adapté à un trafic imprévisible
   hash_key     = "doc_id"
 
   attribute {
@@ -24,7 +24,7 @@ resource "aws_dynamodb_table" "metadata" {
   }
 
   point_in_time_recovery {
-    enabled = true   # permet de restaurer la table à un instant T en cas de corruption/erreur d'écriture massive
+    enabled = true # permet de restaurer la table à un instant T en cas de corruption/erreur d'écriture massive
   }
 
   server_side_encryption {

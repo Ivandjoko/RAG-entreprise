@@ -1,11 +1,12 @@
 # dataset.py
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
+
 
 @dataclass
 class EvalSample:
     question: str
-    ground_truth: str       # réponse de référence, validée par un humain métier
+    ground_truth: str  # réponse de référence, validée par un humain métier
     expected_sources: list[str]  # documents qui DEVRAIENT être retrouvés
 
 
@@ -20,7 +21,9 @@ def load_golden_dataset(path: str) -> list[EvalSample]:
     return [EvalSample(**item) for item in raw]
 
 
-def generate_synthetic_dataset(documents: list[str], llm_client, n_questions: int = 50) -> list[EvalSample]:
+def generate_synthetic_dataset(
+    documents: list[str], llm_client, n_questions: int = 50
+) -> list[EvalSample]:
     """
     Complète le golden dataset avec des questions générées automatiquement
     à partir du corpus réel, pour couvrir plus de cas sans tout écrire à la main.
@@ -34,9 +37,11 @@ Réponds en JSON: {{"question": "...", "answer": "..."}}
 Texte: {doc[:2000]}"""
         response = llm_client.generate(prompt)
         parsed = json.loads(response)
-        samples.append(EvalSample(
-            question=parsed["question"],
-            ground_truth=parsed["answer"],
-            expected_sources=[]
-        ))
+        samples.append(
+            EvalSample(
+                question=parsed["question"],
+                ground_truth=parsed["answer"],
+                expected_sources=[],
+            )
+        )
     return samples[:n_questions]

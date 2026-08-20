@@ -28,7 +28,7 @@ resource "aws_opensearchserverless_access_policy" "collection_access" {
           Permission = ["aoss:CreateIndex", "aoss:UpdateIndex", "aoss:WriteDocument", "aoss:DescribeIndex", "aoss:ReadDocument"]
         }
       ]
-      Principal = [var.ingestion_lambda_role_arn]   # écriture (+ lecture pour la dedup) réservée à l'ingestion
+      Principal = [var.ingestion_lambda_role_arn] # écriture (+ lecture pour la dedup) réservée à l'ingestion
     },
     {
       Rules = [
@@ -43,7 +43,7 @@ resource "aws_opensearchserverless_access_policy" "collection_access" {
           Permission   = ["aoss:DescribeIndex", "aoss:ReadDocument"]
         }
       ]
-      Principal = [var.orchestrator_lambda_role_arn]  # lecture seule pour l'orchestrateur
+      Principal = [var.orchestrator_lambda_role_arn] # lecture seule pour l'orchestrateur
     }
   ])
 }

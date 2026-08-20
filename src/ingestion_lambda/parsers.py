@@ -1,11 +1,13 @@
 # parsers.py
-import boto3
 from io import BytesIO
+
+import boto3
+from bs4 import BeautifulSoup
 from docx import Document as DocxDocument
 from pypdf import PdfReader
-from bs4 import BeautifulSoup
 
 _textract = boto3.client("textract")
+
 
 def extract_text(file_bytes: bytes, content_type: str, is_scanned: bool = False) -> str:
     """
@@ -15,7 +17,10 @@ def extract_text(file_bytes: bytes, content_type: str, is_scanned: bool = False)
     """
     if content_type == "application/pdf":
         return _extract_pdf(file_bytes, is_scanned)
-    elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    elif (
+        content_type
+        == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ):
         return _extract_docx(file_bytes)
     elif content_type == "text/html":
         return _extract_html(file_bytes)

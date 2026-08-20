@@ -1,6 +1,7 @@
 # retrieval.py
-import boto3
 import json
+
+import boto3
 from botocore.config import Config
 from opensearchpy import OpenSearch, RequestsAWSV4SignerAuth, RequestsHttpConnection
 
@@ -11,8 +12,13 @@ _bedrock_runtime = boto3.client(
     # read_timeout/max_attempts volontairement bas ici (diagnostic) : avec 30s*5 tentatives,
     # botocore epuisait le timeout Lambda (60s) AVANT de lever l'exception finale - le except
     # du handler ne recevait donc jamais d'erreur exploitable, juste un kill silencieux.
-    config=Config(connect_timeout=10, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}),
+    config=Config(
+        connect_timeout=10,
+        read_timeout=15,
+        retries={"max_attempts": 2, "mode": "standard"},
+    ),
 )
+
 
 def _get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:
     credentials = boto3.Session().get_credentials()
@@ -29,8 +35,7 @@ def _get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:
 def embed_query(text: str) -> list[float]:
     """Génère l'embedding de la question utilisateur avec le même modèle que l'ingestion."""
     response = _bedrock_runtime.invoke_model(
-        modelId="amazon.titan-embed-text-v2:0",
-        body=json.dumps({"inputText": text})
+        modelId="amazon.titan-embed-text-v2:0", body=json.dumps({"inputText": text})
     )
     return json.loads(response["body"].read())["embedding"]
 
@@ -56,25 +61,17 @@ def hybrid_search(
             "bool": {
                 # Le filtre de permissions s'applique AVANT le scoring - c'est une exclusion dure,
                 # pas une pondération. Un document hors scope n'apparaît jamais, même mal classé.
-                "filter": [
-                    {"terms": {"permissions": allowed_permissions}}
-                ],
+                "filter": [{"terms": {"permissions": allowed_permissions}}],
                 "should": [
                     # Clause vectorielle : similarité sémantique
-                    {
-                        "knn": {
-                            "vector": {"vector": query_vector, "k": top_k}
-                        }
-                    },
+                    {"knn": {"vector": {"vector": query_vector, "k": top_k}}},
                     # Clause lexicale : correspondance de mots-clés exacts (BM25)
                     # essentielle pour les termes précis (références, codes produit, noms propres)
                     # que la similarité sémantique seule rate souvent
-                    {
-                        "match": {"text": {"query": query_text, "boost": 0.4}}
-                    }
-                ]
+                    {"match": {"text": {"query": query_text, "boost": 0.4}}},
+                ],
             }
-        }
+        },
     }
 
     response = opensearch_client.search(index=index_name, body=query_body)
@@ -83,9 +80,7 @@ def hybrid_search(
             "text": hit["_source"]["text"],
             "doc_id": hit["_source"]["doc_id"],
             "source": hit["_source"]["source"],
-            "score": hit["_score"]
+            "score": hit["_score"],
         }
         for hit in response["hits"]["hits"]
     ]
-
-

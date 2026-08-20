@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "terraform_deployer" {
       "ec2:*Vpc*", "ec2:*Subnet*", "ec2:*RouteTable*", "ec2:*SecurityGroup*",
       "ec2:*VpcEndpoint*", "ec2:DescribeAvailabilityZones", "ec2:*Tags*"
     ]
-    resources = ["*"]  # EC2 ne supporte pas toujours le scoping par ARN pour ces actions de lecture/gestion réseau
+    resources = ["*"] # EC2 ne supporte pas toujours le scoping par ARN pour ces actions de lecture/gestion réseau
   }
 
   # Stockage et données
@@ -24,35 +24,35 @@ data "aws_iam_policy_document" "terraform_deployer" {
   }
 
   statement {
-    sid     = "Database"
-    effect  = "Allow"
-    actions = ["dynamodb:*"]
+    sid       = "Database"
+    effect    = "Allow"
+    actions   = ["dynamodb:*"]
     resources = ["arn:aws:dynamodb:*:*:table/rag-platform-*"]
   }
 
   # IA / recherche
   statement {
-    sid     = "AIServices"
-    effect  = "Allow"
+    sid    = "AIServices"
+    effect = "Allow"
     actions = [
       "bedrock:*",
       "aoss:*"
     ]
-    resources = ["*"]  # Bedrock et OpenSearch Serverless exposent peu d'ARN scopables sur les actions de gestion
+    resources = ["*"] # Bedrock et OpenSearch Serverless exposent peu d'ARN scopables sur les actions de gestion
   }
 
   # Compute
   statement {
-    sid     = "Compute"
-    effect  = "Allow"
-    actions = ["lambda:*"]
+    sid       = "Compute"
+    effect    = "Allow"
+    actions   = ["lambda:*"]
     resources = ["arn:aws:lambda:*:*:function:rag-platform-*"]
   }
 
   # API et auth
   statement {
-    sid     = "ApiAndAuth"
-    effect  = "Allow"
+    sid    = "ApiAndAuth"
+    effect = "Allow"
     actions = [
       "apigateway:*",
       "cognito-idp:*",
@@ -75,17 +75,17 @@ data "aws_iam_policy_document" "terraform_deployer" {
 
   # Chiffrement
   statement {
-    sid     = "Encryption"
-    effect  = "Allow"
-    actions = ["kms:*"]
-    resources = ["*"]  # les clés n'existent pas encore au premier apply, donc pas d'ARN à scoper a priori
+    sid       = "Encryption"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"] # les clés n'existent pas encore au premier apply, donc pas d'ARN à scoper a priori
   }
 
   # Observabilité
   statement {
-    sid     = "Observability"
-    effect  = "Allow"
-    actions = ["logs:*", "cloudtrail:*"]
+    sid       = "Observability"
+    effect    = "Allow"
+    actions   = ["logs:*", "cloudtrail:*"]
     resources = ["*"]
   }
 
@@ -110,8 +110,8 @@ data "aws_iam_policy_document" "terraform_deployer" {
   }
 
   statement {
-    sid     = "DenyBoundaryTampering"
-    effect  = "Deny"
+    sid    = "DenyBoundaryTampering"
+    effect = "Deny"
     actions = [
       "iam:DeleteRolePermissionsBoundary",
       "iam:PutRolePermissionsBoundary"

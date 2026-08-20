@@ -1,8 +1,8 @@
 # opensearch_client.py
 # Dupliqué depuis src/query_orchestrator_lambda/retrieval.py : chaque Lambda est packagée
 # indépendamment (zip séparé), donc pas d'import cross-package possible entre les deux.
-from opensearchpy import OpenSearch, RequestsAWSV4SignerAuth, RequestsHttpConnection
 import boto3
+from opensearchpy import OpenSearch, RequestsAWSV4SignerAuth, RequestsHttpConnection
 
 
 def get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:

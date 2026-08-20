@@ -25,7 +25,7 @@ data "aws_iam_policy_document" "permissions_boundary" {
       "iam:SetDefaultPolicyVersion",
       "iam:AttachUserPolicy",
       "iam:PutUserPolicy",
-      "organizations:*",         # aucun rôle applicatif n'a besoin de toucher Organizations
+      "organizations:*", # aucun rôle applicatif n'a besoin de toucher Organizations
       "account:*"
     ]
     resources = ["*"]

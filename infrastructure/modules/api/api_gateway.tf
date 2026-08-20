@@ -4,7 +4,7 @@ resource "aws_api_gateway_rest_api" "main" {
   name = "rag-platform-api-${var.environment}"
 
   endpoint_configuration {
-    types = ["REGIONAL"]  # pas EDGE : on garde le trafic dans la région, pas besoin de CloudFront ici
+    types = ["REGIONAL"] # pas EDGE : on garde le trafic dans la région, pas besoin de CloudFront ici
   }
 }
 
@@ -35,7 +35,7 @@ resource "aws_api_gateway_integration" "query_lambda" {
   resource_id             = aws_api_gateway_resource.query.id
   http_method             = aws_api_gateway_method.query_post.http_method
   integration_http_method = "POST"
-  type                    = "AWS_PROXY"   # proxy intégral : API Gateway transmet la requête brute à Lambda
+  type                    = "AWS_PROXY" # proxy intégral : API Gateway transmet la requête brute à Lambda
   uri                     = var.orchestrator_lambda_invoke_arn
   # 29000 (defaut/max de base) coupe le client avant que le pipeline RAG complet (guardrail
   # + embed + recherche hybride + rerank + generation LLM) n'ait fini. Necessite une
@@ -80,16 +80,16 @@ resource "aws_api_gateway_stage" "main" {
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.api_access.arn
     format = jsonencode({
-      requestId      = "$context.requestId"
-      ip              = "$context.identity.sourceIp"
-      caller          = "$context.identity.cognitoIdentityId"
-      status          = "$context.status"
-      latency         = "$context.responseLatency"
+      requestId        = "$context.requestId"
+      ip               = "$context.identity.sourceIp"
+      caller           = "$context.identity.cognitoIdentityId"
+      status           = "$context.status"
+      latency          = "$context.responseLatency"
       integrationError = "$context.integration.error"
     })
   }
 
-  xray_tracing_enabled = true   # traçabilité de bout en bout, utile pour débugger la latence
+  xray_tracing_enabled = true # traçabilité de bout en bout, utile pour débugger la latence
 
   # Pas de référence directe vers aws_api_gateway_account.main (réglage de compte, pas
   # rattaché par ARN) : sans ce depends_on explicite, rien ne garantit qu'il soit créé
@@ -110,9 +110,9 @@ resource "aws_api_gateway_method_settings" "throttling" {
   method_path = "*/*"
 
   settings {
-    throttling_rate_limit  = var.throttling_rate_limit   # ex: 50 req/s en prod
-    throttling_burst_limit = var.throttling_burst_limit  # ex: 100
-    metrics_enabled         = true
-    logging_level            = "INFO"
+    throttling_rate_limit  = var.throttling_rate_limit  # ex: 50 req/s en prod
+    throttling_burst_limit = var.throttling_burst_limit # ex: 100
+    metrics_enabled        = true
+    logging_level          = "INFO"
   }
 }

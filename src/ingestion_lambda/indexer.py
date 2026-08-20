@@ -40,7 +40,7 @@ def index_chunks(
                 "vector": vector,
                 "source": source,
                 "permissions": permissions,
-            }
+            },
         }
         for chunk, vector in zip(chunks, vectors)
     ]

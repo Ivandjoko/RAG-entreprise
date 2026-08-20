@@ -1,8 +1,10 @@
 # metadata_store.py
-import boto3
 import time
 
+import boto3
+
 _dynamodb = boto3.resource("dynamodb")
+
 
 def write_document_metadata(
     table_name: str,
@@ -13,14 +15,16 @@ def write_document_metadata(
     status: str = "indexed",
 ):
     table = _dynamodb.Table(table_name)
-    table.put_item(Item={
-        "doc_id": doc_id,
-        "source_key": source_key,
-        "permissions": permissions,
-        "chunk_count": chunk_count,
-        "status": status,
-        "indexed_at": int(time.time()),
-    })
+    table.put_item(
+        Item={
+            "doc_id": doc_id,
+            "source_key": source_key,
+            "permissions": permissions,
+            "chunk_count": chunk_count,
+            "status": status,
+            "indexed_at": int(time.time()),
+        }
+    )
 
 
 def resolve_permissions(source_key: str) -> list[str]:

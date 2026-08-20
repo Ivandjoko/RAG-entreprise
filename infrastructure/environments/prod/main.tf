@@ -44,7 +44,7 @@ module "retrieval" {
   log_retention_days              = var.retention_days
   collection_name                 = "rag-vectors-${var.environment}"
   index_name                      = "rag-index-${var.environment}"
-  opensearch_instance_type        = "OCU"   # Serverless = pas d'instance à dimensionner
+  opensearch_instance_type        = "OCU" # Serverless = pas d'instance à dimensionner
   # metadata_table_name : pas encore câblable, aucune table DynamoDB n'existe côté Terraform
   # (voir rapport d'audit).
 }
@@ -56,7 +56,7 @@ module "api" {
   orchestrator_lambda_function_name = module.retrieval.orchestrator_lambda_function_name
   kms_audit_key_arn                 = module.security.kms_audit_key_arn
   permission_groups                 = ["public", "finance-team", "hr-confidential"]
-  throttling_rate_limit             = 50    # cf. commentaire api_gateway.tf : valeur prod suggérée
+  throttling_rate_limit             = 50 # cf. commentaire api_gateway.tf : valeur prod suggérée
   throttling_burst_limit            = 100
   waf_rate_limit_per_ip             = 500
   blocked_countries                 = []

@@ -6,12 +6,16 @@ _bedrock_runtime = boto3.client(
     "bedrock-runtime",
     # mode "standard" et non "adaptive" : voir embeddings.py pour le raisonnement (limiteur
     # de debit cote client persistant entre invocations Lambda "warm").
-    config=Config(connect_timeout=10, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}),
+    config=Config(
+        connect_timeout=10,
+        read_timeout=15,
+        retries={"max_attempts": 2, "mode": "standard"},
+    ),
 )
+
 
 class ContentBlockedException(Exception):
     """Levée quand le Guardrail bloque le contenu - jamais silencieusement ignorée."""
-    pass
 
 
 def _is_hard_block(response: dict) -> bool:
@@ -22,7 +26,11 @@ def _is_hard_block(response: dict) -> bool:
     distinguer les deux cas, sinon toute anonymisation devient un blocage inutile.
     """
     for assessment in response.get("assessments", []):
-        if assessment.get("topicPolicy") or assessment.get("contentPolicy") or assessment.get("wordPolicy"):
+        if (
+            assessment.get("topicPolicy")
+            or assessment.get("contentPolicy")
+            or assessment.get("wordPolicy")
+        ):
             return True
         pii_policy = assessment.get("sensitiveInformationPolicy", {})
         entities = pii_policy.get("piiEntities", []) + pii_policy.get("regexes", [])
@@ -40,7 +48,7 @@ def check_input(text: str, guardrail_id: str, guardrail_version: str) -> str:
         guardrailIdentifier=guardrail_id,
         guardrailVersion=guardrail_version,
         source="INPUT",
-        content=[{"text": {"text": text}}]
+        content=[{"text": {"text": text}}],
     )
 
     if response["action"] == "GUARDRAIL_INTERVENED" and _is_hard_block(response):
@@ -60,7 +68,7 @@ def check_output(text: str, guardrail_id: str, guardrail_version: str) -> str:
         guardrailIdentifier=guardrail_id,
         guardrailVersion=guardrail_version,
         source="OUTPUT",
-        content=[{"text": {"text": text}}]
+        content=[{"text": {"text": text}}],
     )
 
     if response["action"] == "GUARDRAIL_INTERVENED" and _is_hard_block(response):

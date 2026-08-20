@@ -16,18 +16,18 @@ data "archive_file" "orchestrator" {
 }
 
 resource "aws_lambda_function" "orchestrator" {
-  function_name    = "rag-orchestrator-${var.environment}"
-  role              = var.orchestrator_lambda_role_arn
-  handler           = "handler.handler"
-  runtime           = "python3.12"
+  function_name = "rag-orchestrator-${var.environment}"
+  role          = var.orchestrator_lambda_role_arn
+  handler       = "handler.handler"
+  runtime       = "python3.12"
   # 30s etait trop court : guardrail input + DynamoDB + embed_query + recherche hybride +
   # rerank Cohere + generation Claude + guardrail output + audit log s'enchainent, et
   # depassent 30s des que Bedrock/OpenSearch repondent lentement. Voir aussi le
   # timeout_milliseconds cote aws_api_gateway_integration.query_lambda (api_gateway.tf).
-  timeout           = 60
-  memory_size       = 1024
-  filename          = data.archive_file.orchestrator.output_path
-  source_code_hash  = data.archive_file.orchestrator.output_base64sha256
+  timeout          = 60
+  memory_size      = 1024
+  filename         = data.archive_file.orchestrator.output_path
+  source_code_hash = data.archive_file.orchestrator.output_base64sha256
   layers           = [aws_lambda_layer_version.orchestrator_deps.arn]
 
   vpc_config {
@@ -47,7 +47,7 @@ resource "aws_lambda_function" "orchestrator" {
     }
   }
   tracing_config {
-    mode = "Active"   # X-Ray, cohérent avec xray_tracing_enabled activé côté API Gateway
+    mode = "Active" # X-Ray, cohérent avec xray_tracing_enabled activé côté API Gateway
   }
   depends_on = [aws_opensearchserverless_access_policy.collection_access]
 
@@ -72,6 +72,6 @@ resource "aws_cloudwatch_log_group" "query_audit" {
 resource "aws_lambda_layer_version" "orchestrator_deps" {
   layer_name          = "rag-orchestrator-deps-${var.environment}"
   filename            = "${path.module}/build/orchestrator_layer.zip"
-  compatible_runtimes  = ["python3.12"]
-  source_code_hash     = filebase64sha256("${path.module}/build/orchestrator_layer.zip")
+  compatible_runtimes = ["python3.12"]
+  source_code_hash    = filebase64sha256("${path.module}/build/orchestrator_layer.zip")
 }

@@ -38,6 +38,16 @@ resource "aws_dynamodb_table" "tfstate_lock" {
     name = "LockID"
     type = "S"
   }
+
+  # Une table de verrous Terraform n'a pas de donnee a "recuperer" (juste un lock ID
+  # ephemere), mais l'activer coute rien en PAY_PER_REQUEST et satisfait CKV_AWS_28.
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  # checkov:skip=CKV_AWS_119: table de lock Terraform (aucune donnee sensible, juste un
+  # LockID ephemere) - chiffrement AWS-owned deja actif par defaut ; une CMK dediee au seul
+  # bootstrap serait disproportionnee pour cette table.
 }
 
 # 3. Le fournisseur OIDC GitHub
@@ -92,4 +102,3 @@ resource "aws_iam_role_policy_attachment" "deployer" {
   role       = aws_iam_role.github_actions.name
   policy_arn = aws_iam_policy.terraform_deployer.arn
 }
-AWS_PROFILE=AdministratorAccess-Bootstrap-027457927285

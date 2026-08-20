@@ -14,10 +14,10 @@ resource "aws_iam_role_policy" "ingestion_write_vector_index" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid       = "WriteVectorIndex"
-      Effect    = "Allow"
-      Action    = ["aoss:APIAccessAll"]
-      Resource  = aws_opensearchserverless_collection.vectors.arn
+      Sid      = "WriteVectorIndex"
+      Effect   = "Allow"
+      Action   = ["aoss:APIAccessAll"]
+      Resource = aws_opensearchserverless_collection.vectors.arn
     }]
   })
 }
@@ -28,10 +28,10 @@ resource "aws_iam_role_policy" "orchestrator_query_vector_index" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid       = "QueryVectorIndex"
-      Effect    = "Allow"
-      Action    = ["aoss:APIAccessAll"]
-      Resource  = aws_opensearchserverless_collection.vectors.arn
+      Sid      = "QueryVectorIndex"
+      Effect   = "Allow"
+      Action   = ["aoss:APIAccessAll"]
+      Resource = aws_opensearchserverless_collection.vectors.arn
     }]
   })
 }

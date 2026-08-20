@@ -1,7 +1,8 @@
 # audit.py
-import boto3
 import json
 import time
+
+import boto3
 from botocore.config import Config
 
 # Sans Config explicite, botocore utilise ses timeouts par defaut (60s) - sans VPC endpoint
@@ -9,12 +10,23 @@ from botocore.config import Config
 # budget de la Lambda (voir aussi l'endpoint aws_vpc_endpoint.logs ajoute cote networking).
 _logs_client = boto3.client(
     "logs",
-    config=Config(connect_timeout=10, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}),
+    config=Config(
+        connect_timeout=10,
+        read_timeout=15,
+        retries={"max_attempts": 2, "mode": "standard"},
+    ),
 )
 LOG_GROUP = "/aws/rag-platform/query-audit"
 
-def log_query(user_id: str, question: str, sources: list[str], 
-              latency_ms: int, status: str, error: str = None):
+
+def log_query(
+    user_id: str,
+    question: str,
+    sources: list[str],
+    latency_ms: int,
+    status: str,
+    error: str | None = None,
+):
     """
     Log structuré (JSON) pour permettre des requêtes CloudWatch Insights précises,
     ex: 'combien de requêtes bloquées par le Guardrail cette semaine ?'
@@ -22,7 +34,9 @@ def log_query(user_id: str, question: str, sources: list[str],
     entry = {
         "timestamp": int(time.time() * 1000),
         "user_id": user_id,
-        "question_length": len(question),   # jamais la question en clair dans les logs si sensible
+        "question_length": len(
+            question
+        ),  # jamais la question en clair dans les logs si sensible
         "sources_used": sources,
         "latency_ms": latency_ms,
         "status": status,
@@ -30,7 +44,9 @@ def log_query(user_id: str, question: str, sources: list[str],
     if error:
         entry["error"] = error
 
-    log_stream = f"{user_id}-{int(time.time() // 86400)}"  # un stream par jour et par user
+    log_stream = (
+        f"{user_id}-{int(time.time() // 86400)}"  # un stream par jour et par user
+    )
     log_event = {"timestamp": entry["timestamp"], "message": json.dumps(entry)}
 
     try:

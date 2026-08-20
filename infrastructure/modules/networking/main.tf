@@ -5,7 +5,7 @@ resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = merge(local.common_tags, { Name = "rag-vpc-${var.environment}" })
+  tags                 = merge(local.common_tags, { Name = "rag-vpc-${var.environment}" })
 }
 
 resource "aws_subnet" "private" {
@@ -13,7 +13,7 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = cidrsubnet(var.vpc_cidr, 4, index(var.azs, each.value))
   availability_zone = each.value
-  tags = merge(local.common_tags, { Name = "rag-private-${each.value}" })
+  tags              = merge(local.common_tags, { Name = "rag-private-${each.value}" })
 }
 
 # Table de routage privée, associée à chaque subnet privé (pas de route publique :
@@ -36,6 +36,7 @@ resource "aws_route_table_association" "private" {
 # un cycle de dépendance (chacun aurait besoin de l'ID de l'autre pour être créé).
 resource "aws_security_group" "vpc_endpoints" {
   name_prefix = "rag-vpc-endpoints-${var.environment}-"
+  description = "VPC endpoints Interface (Bedrock, OpenSearch Serverless, CloudWatch Logs) - ingress HTTPS depuis les Lambdas uniquement"
   vpc_id      = aws_vpc.main.id
 
   tags = merge(local.common_tags, { Name = "rag-vpc-endpoints-${var.environment}" })
@@ -43,6 +44,7 @@ resource "aws_security_group" "vpc_endpoints" {
 
 resource "aws_security_group" "lambda" {
   name_prefix = "rag-lambda-${var.environment}-"
+  description = "Lambdas ingestion/orchestrateur/index-bootstrap - egress HTTPS uniquement vers les VPC endpoints et les prefix lists S3/DynamoDB"
   vpc_id      = aws_vpc.main.id
 
   tags = merge(local.common_tags, { Name = "rag-lambda-${var.environment}" })
@@ -80,20 +82,20 @@ data "aws_prefix_list" "dynamodb" {
 
 resource "aws_vpc_security_group_egress_rule" "lambda_to_s3" {
   security_group_id = aws_security_group.lambda.id
-  description        = "HTTPS sortant vers S3 (Gateway endpoint)"
-  from_port          = 443
-  to_port             = 443
-  ip_protocol         = "tcp"
-  prefix_list_id      = data.aws_prefix_list.s3.id
+  description       = "HTTPS sortant vers S3 (Gateway endpoint)"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  prefix_list_id    = data.aws_prefix_list.s3.id
 }
 
 resource "aws_vpc_security_group_egress_rule" "lambda_to_dynamodb" {
   security_group_id = aws_security_group.lambda.id
-  description        = "HTTPS sortant vers DynamoDB (Gateway endpoint)"
-  from_port          = 443
-  to_port             = 443
-  ip_protocol         = "tcp"
-  prefix_list_id      = data.aws_prefix_list.dynamodb.id
+  description       = "HTTPS sortant vers DynamoDB (Gateway endpoint)"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  prefix_list_id    = data.aws_prefix_list.dynamodb.id
 }
 
 # VPC endpoints pour rester privé (pas de NAT Gateway = économie + sécurité)
@@ -103,19 +105,19 @@ resource "aws_vpc_security_group_egress_rule" "lambda_to_dynamodb" {
 # réseau VPC). Sans route vers logs.<region>.amazonaws.com (pas de NAT ici), l'appel reste
 # bloqué jusqu'au timeout par défaut de botocore (60s), silencieusement.
 resource "aws_vpc_endpoint" "logs" {
-  vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${data.aws_region.current.name}.logs"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = [for s in aws_subnet.private : s.id]
-  security_group_ids = [aws_security_group.vpc_endpoints.id]
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.logs"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [for s in aws_subnet.private : s.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
 }
 
 resource "aws_vpc_endpoint" "bedrock" {
-  vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${data.aws_region.current.name}.bedrock-runtime"
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = [for s in aws_subnet.private : s.id]
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${data.aws_region.current.name}.bedrock-runtime"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = [for s in aws_subnet.private : s.id]
   security_group_ids = [aws_security_group.vpc_endpoints.id]
   # Sans ça, le hostname public standard (bedrock-runtime.<region>.amazonaws.com), utilisé
   # tel quel par le SDK boto3, résout vers l'IP publique réelle d'AWS - injoignable depuis
@@ -135,7 +137,7 @@ resource "aws_vpc_endpoint" "s3" {
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
-  vpc_endpoint_type = "Gateway"   # Gateway comme S3, gratuit, via route table
+  vpc_endpoint_type = "Gateway" # Gateway comme S3, gratuit, via route table
   route_table_ids   = [aws_route_table.private.id]
 }
 

@@ -3,8 +3,8 @@
 resource "aws_wafv2_web_acl" "main" {
   count       = var.enable_waf ? 1 : 0
   name        = "rag-platform-waf-${var.environment}"
-  description = "Protection WAF pour la plateforme RAG"   # pas d'apostrophe : rejetée par la regex WAFv2
-  scope       = "REGIONAL"   # REGIONAL pour API Gateway, CLOUDFRONT si jamais devant CloudFront
+  description = "Protection WAF pour la plateforme RAG" # pas d'apostrophe : rejetée par la regex WAFv2
+  scope       = "REGIONAL"                              # REGIONAL pour API Gateway, CLOUDFRONT si jamais devant CloudFront
 
   default_action {
     allow {}
@@ -26,8 +26,8 @@ resource "aws_wafv2_web_acl" "main" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                 = "CommonRuleSet"
-      sampled_requests_enabled    = true
+      metric_name                = "CommonRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 
@@ -48,8 +48,8 @@ resource "aws_wafv2_web_acl" "main" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                 = "SQLiRuleSet"
-      sampled_requests_enabled    = true
+      metric_name                = "SQLiRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 
@@ -63,14 +63,14 @@ resource "aws_wafv2_web_acl" "main" {
     }
     statement {
       rate_based_statement {
-        limit              = var.waf_rate_limit_per_ip  # ex: 500 requêtes / 5 min / IP
+        limit              = var.waf_rate_limit_per_ip # ex: 500 requêtes / 5 min / IP
         aggregate_key_type = "IP"
       }
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                 = "RateLimitPerIP"
-      sampled_requests_enabled    = true
+      metric_name                = "RateLimitPerIP"
+      sampled_requests_enabled   = true
     }
   }
 
@@ -91,16 +91,16 @@ resource "aws_wafv2_web_acl" "main" {
       }
       visibility_config {
         cloudwatch_metrics_enabled = true
-        metric_name                 = "GeoBlock"
-        sampled_requests_enabled    = true
+        metric_name                = "GeoBlock"
+        sampled_requests_enabled   = true
       }
     }
   }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                 = "rag-platform-waf-${var.environment}"
-    sampled_requests_enabled    = true
+    metric_name                = "rag-platform-waf-${var.environment}"
+    sampled_requests_enabled   = true
   }
 
   tags = local.common_tags

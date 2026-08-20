@@ -49,16 +49,16 @@ resource "aws_cognito_user_pool_client" "orchestrator" {
   generate_secret = false
 
   explicit_auth_flows = [
-    "ALLOW_USER_SRP_AUTH",          # authentification par mot de passe, sécurisée (SRP)
+    "ALLOW_USER_SRP_AUTH", # authentification par mot de passe, sécurisée (SRP)
     "ALLOW_REFRESH_TOKEN_AUTH",
     # Nécessite déjà des credentials IAM AWS pour être appelé (admin-initiate-auth) : pas
     # exposé aux utilisateurs finaux via l'app publique, utile pour les tests/ops en CLI.
     "ALLOW_ADMIN_USER_PASSWORD_AUTH"
   ]
 
-  access_token_validity  = 1   # heures - court, pour limiter la fenêtre d'exploitation d'un token volé
+  access_token_validity  = 1 # heures - court, pour limiter la fenêtre d'exploitation d'un token volé
   id_token_validity      = 1
-  refresh_token_validity = 30  # jours
+  refresh_token_validity = 30 # jours
 
   token_validity_units {
     access_token  = "hours"
@@ -66,13 +66,13 @@ resource "aws_cognito_user_pool_client" "orchestrator" {
     refresh_token = "days"
   }
 
-  prevent_user_existence_errors = "ENABLED"  # même raison que allow_admin_create_user_only ci-dessus
+  prevent_user_existence_errors = "ENABLED" # même raison que allow_admin_create_user_only ci-dessus
 }
 
 # Groupes Cognito : c'est ici que se distinguent les niveaux de permission
 # métier (finance-team, hr-confidential...) référencés dans le module retrieval
 resource "aws_cognito_user_group" "groups" {
-  for_each     = toset(var.permission_groups)  # ex: ["public", "finance-team", "hr-confidential"]
+  for_each     = toset(var.permission_groups) # ex: ["public", "finance-team", "hr-confidential"]
   name         = each.value
   user_pool_id = aws_cognito_user_pool.main.id
 }
