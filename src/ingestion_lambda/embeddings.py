@@ -8,7 +8,11 @@ from botocore.config import Config
 # (5 min) au lieu d'échouer vite avec une erreur exploitable.
 _bedrock_runtime = boto3.client(
     "bedrock-runtime",
-    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "adaptive"}),
+    # mode "standard" et non "adaptive" : adaptive maintient un limiteur de debit cote
+    # client persistant sur l'instance boto3 (donc entre invocations Lambda "warm") - un
+    # throttling passe peut le laisser dans un etat conservateur qui retarde silencieusement
+    # les appels suivants au lieu d'echouer vite, jusqu'a epuiser read_timeout.
+    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "standard"}),
 )
 
 def embed_chunks(chunks: list[str], batch_size: int = 10) -> list[list[float]]:

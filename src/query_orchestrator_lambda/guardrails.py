@@ -1,16 +1,35 @@
 # guardrails.py
 import boto3
-import json
 from botocore.config import Config
 
 _bedrock_runtime = boto3.client(
     "bedrock-runtime",
-    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "adaptive"}),
+    # mode "standard" et non "adaptive" : voir embeddings.py pour le raisonnement (limiteur
+    # de debit cote client persistant entre invocations Lambda "warm").
+    config=Config(connect_timeout=10, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}),
 )
 
 class ContentBlockedException(Exception):
     """Levée quand le Guardrail bloque le contenu - jamais silencieusement ignorée."""
     pass
+
+
+def _is_hard_block(response: dict) -> bool:
+    """
+    action == "GUARDRAIL_INTERVENED" est renvoyé aussi bien pour un blocage dur (topic,
+    contenu, mot interdit) que pour une simple anonymisation de PII (le texte, déjà masqué
+    par le Guardrail, reste utilisable) - il faut inspecter le détail par politique pour
+    distinguer les deux cas, sinon toute anonymisation devient un blocage inutile.
+    """
+    for assessment in response.get("assessments", []):
+        if assessment.get("topicPolicy") or assessment.get("contentPolicy") or assessment.get("wordPolicy"):
+            return True
+        pii_policy = assessment.get("sensitiveInformationPolicy", {})
+        entities = pii_policy.get("piiEntities", []) + pii_policy.get("regexes", [])
+        if any(e.get("action") == "BLOCKED" for e in entities):
+            return True
+    return False
+
 
 def check_input(text: str, guardrail_id: str, guardrail_version: str) -> str:
     """
@@ -24,12 +43,12 @@ def check_input(text: str, guardrail_id: str, guardrail_version: str) -> str:
         content=[{"text": {"text": text}}]
     )
 
-    if response["action"] == "GUARDRAIL_INTERVENED":
+    if response["action"] == "GUARDRAIL_INTERVENED" and _is_hard_block(response):
         # On log la raison précise pour l'audit, mais on ne la renvoie JAMAIS à l'utilisateur
         # (renvoyer le détail du filtre déclenché aide un attaquant à affiner son contournement)
         raise ContentBlockedException(response["outputs"][0]["text"])
 
-    return text
+    return response["outputs"][0]["text"] if response.get("outputs") else text
 
 
 def check_output(text: str, guardrail_id: str, guardrail_version: str) -> str:
@@ -44,7 +63,7 @@ def check_output(text: str, guardrail_id: str, guardrail_version: str) -> str:
         content=[{"text": {"text": text}}]
     )
 
-    if response["action"] == "GUARDRAIL_INTERVENED":
+    if response["action"] == "GUARDRAIL_INTERVENED" and _is_hard_block(response):
         raise ContentBlockedException(response["outputs"][0]["text"])
 
     # Si le Guardrail a anonymisé des PII (email, téléphone...), c'est CE texte modifié

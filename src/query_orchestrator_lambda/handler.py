@@ -4,7 +4,7 @@ import json
 import time
 from permissions import get_user_permissions
 from guardrails import check_input, check_output, ContentBlockedException
-from retrieval import embed_query, hybrid_search, rerank, _get_opensearch_client
+from retrieval import embed_query, hybrid_search, _get_opensearch_client
 from generation import generate_answer
 from audit import log_query
 
@@ -31,45 +31,42 @@ def handler(event, context):
         # gérée qui remonterait un traceback brut au client via API Gateway.
         user_id = event["requestContext"]["authorizer"]["claims"]["sub"]  # injecté par Cognito
         question = json.loads(event["body"])["question"]
-        print(f"[0/7] user_id={user_id} question={question!r}")
+        print(f"[0/6] user_id={user_id} question={question!r}")
 
         # Étape 1 - Guardrail en entrée : bloque prompt injection AVANT toute recherche
-        print("[1/7] Appel Bedrock ApplyGuardrail (input)...")
+        print("[1/6] Appel Bedrock ApplyGuardrail (input)...")
         check_input(question, GUARDRAIL_ID, GUARDRAIL_VERSION)
-        print("[1/7] OK")
+        print("[1/6] OK")
 
         # Étape 2 - Résolution des droits utilisateur
-        print("[2/7] Lecture DynamoDB (user_permissions)...")
+        print("[2/6] Lecture DynamoDB (user_permissions)...")
         allowed_permissions = get_user_permissions(user_id, USER_PERMISSIONS_TABLE)
-        print(f"[2/7] OK - permissions={allowed_permissions}")
+        print(f"[2/6] OK - permissions={allowed_permissions}")
 
-        # Étape 3 - Recherche hybride, filtrée par permissions
-        print("[3/7] Appel Bedrock (embed_query)...")
+        # Étape 3 - Recherche hybride, filtrée par permissions (pas de rerank derrière :
+        # aucun modèle de rerank Bedrock n'est disponible depuis eu-west-3 sans NAT Gateway,
+        # hybrid_search renvoie donc directement le top_k final)
+        print("[3/6] Appel Bedrock (embed_query)...")
         query_vector = embed_query(question)
-        print("[3/7] OK - appel OpenSearch (hybrid_search)...")
-        candidates = hybrid_search(
+        print("[3/6] OK - appel OpenSearch (hybrid_search)...")
+        top_chunks = hybrid_search(
             question, query_vector, allowed_permissions,
             _opensearch_client, INDEX_NAME
         )
-        print(f"[3/7] OK - {len(candidates)} candidats")
+        print(f"[3/6] OK - {len(top_chunks)} chunks retenus")
 
-        # Étape 4 - Reranking pour ne garder que les meilleurs chunks
-        print("[4/7] Appel Bedrock (rerank)...")
-        top_chunks = rerank(question, candidates, top_n=5)
-        print(f"[4/7] OK - {len(top_chunks)} chunks retenus")
-
-        # Étape 5 - Génération de la réponse
-        print("[5/7] Appel Bedrock (generate_answer)...")
+        # Étape 4 - Génération de la réponse
+        print("[4/6] Appel Bedrock (generate_answer)...")
         answer = generate_answer(question, top_chunks)
-        print("[5/7] OK")
+        print("[4/6] OK")
 
-        # Étape 6 - Guardrail en sortie : anonymise PII, bloque hallucinations non ancrées
-        print("[6/7] Appel Bedrock ApplyGuardrail (output)...")
+        # Étape 5 - Guardrail en sortie : anonymise PII, bloque hallucinations non ancrées
+        print("[5/6] Appel Bedrock ApplyGuardrail (output)...")
         safe_answer = check_output(answer, GUARDRAIL_ID, GUARDRAIL_VERSION)
-        print("[6/7] OK")
+        print("[5/6] OK")
 
-        # Étape 7 - Audit : trace complète de la décision, avant de répondre
-        print("[7/7] Ecriture CloudWatch Logs (audit)...")
+        # Étape 6 - Audit : trace complète de la décision, avant de répondre
+        print("[6/6] Ecriture CloudWatch Logs (audit)...")
         log_query(
             user_id=user_id,
             question=question,
@@ -87,7 +84,8 @@ def handler(event, context):
         }
 
     except ContentBlockedException:
-        log_query(user_id=user_id, question=question, sources=[], 
+        print("[BLOCKED] Contenu bloque par le Guardrail")
+        log_query(user_id=user_id, question=question, sources=[],
                    latency_ms=int((time.time() - start_time) * 1000), status="blocked")
         return {
             "statusCode": 400,
@@ -97,6 +95,9 @@ def handler(event, context):
     except Exception as e:
         # Erreur inattendue : on log l'erreur complète côté CloudWatch pour debug,
         # mais on ne renvoie JAMAIS le détail technique à l'utilisateur (fuite d'info)
+        # print() explicite car log_query() écrit dans un log group séparé
+        # (/aws/rag-platform/query-audit), pas dans le log stream de la fonction elle-même.
+        print(f"[ERROR] {type(e).__name__}: {e}")
         log_query(user_id=user_id, question=question, sources=[],
                    latency_ms=int((time.time() - start_time) * 1000), status="error", error=str(e))
         return {

@@ -1,7 +1,7 @@
 # run_evaluation.py
 import sys
 sys.path.append("../query_orchestrator_lambda")
-from retrieval import embed_query, hybrid_search, rerank, _get_opensearch_client
+from retrieval import embed_query, hybrid_search, _get_opensearch_client
 from generation import generate_answer
 from dataset import load_golden_dataset
 from metrics import run_ragas_evaluation
@@ -13,11 +13,10 @@ def evaluate_configuration(dataset_path: str, config_name: str, opensearch_clien
 
     for sample in samples:
         query_vector = embed_query(sample.question)
-        candidates = hybrid_search(
+        top_chunks = hybrid_search(
             sample.question, query_vector, allowed_permissions=["public"],
             opensearch_client=opensearch_client, index_name=index_name
         )
-        top_chunks = rerank(sample.question, candidates, top_n=5)
         answer = generate_answer(sample.question, top_chunks)
 
         eval_rows.append({

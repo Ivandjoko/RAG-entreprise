@@ -6,7 +6,12 @@ from opensearchpy import OpenSearch, RequestsAWSV4SignerAuth, RequestsHttpConnec
 
 _bedrock_runtime = boto3.client(
     "bedrock-runtime",
-    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "adaptive"}),
+    # mode "standard" et non "adaptive" : voir embeddings.py pour le raisonnement (limiteur
+    # de debit cote client persistant entre invocations Lambda "warm").
+    # read_timeout/max_attempts volontairement bas ici (diagnostic) : avec 30s*5 tentatives,
+    # botocore epuisait le timeout Lambda (60s) AVANT de lever l'exception finale - le except
+    # du handler ne recevait donc jamais d'erreur exploitable, juste un kill silencieux.
+    config=Config(connect_timeout=10, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}),
 )
 
 def _get_opensearch_client(collection_endpoint: str, region: str) -> OpenSearch:
@@ -36,7 +41,10 @@ def hybrid_search(
     allowed_permissions: list[str],
     opensearch_client: OpenSearch,
     index_name: str,
-    top_k: int = 25,
+    # Pas d'étape de rerank derrière (Cohere Rerank et Amazon Rerank ne sont disponibles
+    # dans aucune région accessible depuis eu-west-3 sans NAT Gateway - voir git history) :
+    # top_k renvoie directement le nombre final de chunks passés à la génération.
+    top_k: int = 5,
 ) -> list[dict]:
     """
     Combine recherche vectorielle (kNN) et recherche lexicale (BM25),
@@ -81,27 +89,3 @@ def hybrid_search(
     ]
 
 
-def rerank(query_text: str, candidates: list[dict], top_n: int = 5) -> list[dict]:
-    """
-    Réordonne les candidats de la recherche hybride par pertinence réelle,
-    via le modèle Cohere Rerank sur Bedrock.
-    """
-    if not candidates:
-        return []
-
-    response = _bedrock_runtime.invoke_model(
-        modelId="cohere.rerank-v3-5:0",
-        body=json.dumps({
-            "query": query_text,
-            "documents": [c["text"] for c in candidates],
-            "top_n": top_n,
-            "api_version": 2
-        })
-    )
-
-    results = json.loads(response["body"].read())["results"]
-    # results contient les index triés par pertinence + le score de rerank
-    return [
-        {**candidates[r["index"]], "rerank_score": r["relevance_score"]}
-        for r in results
-    ]

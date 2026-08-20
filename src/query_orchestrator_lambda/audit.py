@@ -2,8 +2,15 @@
 import boto3
 import json
 import time
+from botocore.config import Config
 
-_logs_client = boto3.client("logs")
+# Sans Config explicite, botocore utilise ses timeouts par defaut (60s) - sans VPC endpoint
+# "logs" ni NAT Gateway, un appel bloque hangait silencieusement jusqu'a epuiser tout le
+# budget de la Lambda (voir aussi l'endpoint aws_vpc_endpoint.logs ajoute cote networking).
+_logs_client = boto3.client(
+    "logs",
+    config=Config(connect_timeout=10, read_timeout=15, retries={"max_attempts": 2, "mode": "standard"}),
+)
 LOG_GROUP = "/aws/rag-platform/query-audit"
 
 def log_query(user_id: str, question: str, sources: list[str], 

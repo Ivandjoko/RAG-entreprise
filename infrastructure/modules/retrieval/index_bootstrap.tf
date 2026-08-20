@@ -25,6 +25,19 @@ data "archive_file" "index_bootstrap" {
   output_path = "${path.module}/build/index_bootstrap.zip"
 }
 
+# L'ordre de dépendance (depends_on) garantit que Terraform ATTEND que les appels de
+# création IAM/OpenSearch aient répondu - mais "a répondu" ne veut pas dire "propagé
+# partout". IAM (et, dans une moindre mesure, les access policies OpenSearch Serverless)
+# sont en cohérence éventuelle : l'API renvoie 200 avant que la permission ne soit
+# effective à 100% côté data-plane. D'où ce délai explicite avant d'invoquer la Lambda.
+resource "time_sleep" "wait_for_iam_propagation" {
+  depends_on = [
+    aws_opensearchserverless_access_policy.collection_access,
+    aws_iam_role_policy.ingestion_write_vector_index
+  ]
+  create_duration = "20s"
+}
+
 # Invocation Terraform-native : ne s'exécute que si le code ou la config change (idempotent)
 resource "aws_lambda_invocation" "create_index" {
   function_name = aws_lambda_function.index_bootstrap.function_name
@@ -34,12 +47,5 @@ resource "aws_lambda_invocation" "create_index" {
     mapping_file          = "mapping.json"   # embarqué dans le zip de la Lambda
   })
 
-  # Il faut attendre à la fois la policy d'accès OpenSearch (data-plane) ET le grant IAM
-  # AWS (control-plane, aoss:APIAccessAll dans iam_grants.tf) - ce sont deux mécanismes
-  # de permission distincts sur ce même rôle. Sans les deux dans le depends_on, Terraform
-  # peut invoquer cette Lambda avant que le grant IAM ne soit réellement attaché -> 403.
-  depends_on = [
-    aws_opensearchserverless_access_policy.collection_access,
-    aws_iam_role_policy.ingestion_write_vector_index
-  ]
+  depends_on = [time_sleep.wait_for_iam_propagation]
 }

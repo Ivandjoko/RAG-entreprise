@@ -37,6 +37,11 @@ resource "aws_api_gateway_integration" "query_lambda" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"   # proxy intégral : API Gateway transmet la requête brute à Lambda
   uri                     = var.orchestrator_lambda_invoke_arn
+  # 29000 (defaut/max de base) coupe le client avant que le pipeline RAG complet (guardrail
+  # + embed + recherche hybride + rerank + generation LLM) n'ait fini. Necessite une
+  # augmentation du quota de compte "Maximum integration timeout in milliseconds"
+  # (service apigateway) avant que cette valeur > 29000 soit acceptee par l'API.
+  timeout_milliseconds = 60000
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {

@@ -1,16 +1,5 @@
 # indexer.py
-import hashlib
 from opensearchpy import OpenSearch, helpers
-
-def _stable_chunk_id(doc_id: str, chunk_index: int) -> str:
-    """
-    ID déterministe basé sur le doc + l'index du chunk, jamais un UUID aléatoire.
-    C'est ce qui rend l'ingestion idempotente : si la Lambda est relancée sur
-    le même document (retry S3, re-upload), on écrase le même document au lieu
-    d'en créer un doublon dans l'index.
-    """
-    raw = f"{doc_id}-{chunk_index}"
-    return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
 def index_chunks(
@@ -22,11 +11,27 @@ def index_chunks(
     source: str,
     permissions: list[str],
 ):
+    # OpenSearch Serverless (collections VECTORSEARCH) refuse tout _id personnalise en
+    # create/index ("Document ID is not supported in create/index operation request") et
+    # ne supporte pas non plus _delete_by_query. Pour rester idempotent sur un re-upload
+    # (retry S3, re-upload manuel), on retrouve d'abord les _id auto-generes des anciens
+    # chunks de ce document via une recherche, puis on les supprime individuellement avant
+    # de reindexer.
+    existing = client.search(
+        index=index_name,
+        body={"query": {"term": {"doc_id": doc_id}}, "_source": False, "size": 1000},
+    )
+    delete_actions = [
+        {"_op_type": "delete", "_index": index_name, "_id": hit["_id"]}
+        for hit in existing["hits"]["hits"]
+    ]
+    if delete_actions:
+        helpers.bulk(client, delete_actions)
+
     actions = [
         {
-            "_op_type": "index",   # 'index' et non 'create' : écrase si l'ID existe déjà -> idempotent
+            "_op_type": "index",
             "_index": index_name,
-            "_id": _stable_chunk_id(doc_id, chunk.chunk_index),
             "_source": {
                 "doc_id": doc_id,
                 "chunk_index": chunk.chunk_index,
@@ -39,5 +44,5 @@ def index_chunks(
         }
         for chunk, vector in zip(chunks, vectors)
     ]
-    # bulk() envoie tous les chunks d'un document en un seul aller-retour réseau
+    # bulk() envoie tous les chunks d'un document en un seul aller-retour reseau
     helpers.bulk(client, actions)

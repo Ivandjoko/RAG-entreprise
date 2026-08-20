@@ -8,7 +8,9 @@ from botocore.config import Config
 # vite avec une erreur exploitable.
 _bedrock_runtime = boto3.client(
     "bedrock-runtime",
-    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "adaptive"}),
+    # mode "standard" et non "adaptive" : voir embeddings.py pour le raisonnement (limiteur
+    # de debit cote client persistant entre invocations Lambda "warm").
+    config=Config(connect_timeout=10, read_timeout=30, retries={"max_attempts": 5, "mode": "standard"}),
 )
 
 SYSTEM_PROMPT = """Tu réponds aux questions UNIQUEMENT à partir du contexte fourni ci-dessous.

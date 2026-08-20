@@ -97,6 +97,20 @@ resource "aws_vpc_security_group_egress_rule" "lambda_to_dynamodb" {
 }
 
 # VPC endpoints pour rester privé (pas de NAT Gateway = économie + sécurité)
+# Sans cet endpoint, audit.py (query_orchestrator) appelle logs:PutLogEvents pour le log
+# d'audit applicatif (/aws/rag-platform/query-audit) - un appel réseau réel depuis le code,
+# distinct des logs stdout de la fonction elle-même (que Lambda achemine nativement, hors
+# réseau VPC). Sans route vers logs.<region>.amazonaws.com (pas de NAT ici), l'appel reste
+# bloqué jusqu'au timeout par défaut de botocore (60s), silencieusement.
+resource "aws_vpc_endpoint" "logs" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.logs"
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = [for s in aws_subnet.private : s.id]
+  security_group_ids = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+}
+
 resource "aws_vpc_endpoint" "bedrock" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${data.aws_region.current.name}.bedrock-runtime"

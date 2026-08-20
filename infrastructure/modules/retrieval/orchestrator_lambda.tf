@@ -20,7 +20,11 @@ resource "aws_lambda_function" "orchestrator" {
   role              = var.orchestrator_lambda_role_arn
   handler           = "handler.handler"
   runtime           = "python3.12"
-  timeout           = 30
+  # 30s etait trop court : guardrail input + DynamoDB + embed_query + recherche hybride +
+  # rerank Cohere + generation Claude + guardrail output + audit log s'enchainent, et
+  # depassent 30s des que Bedrock/OpenSearch repondent lentement. Voir aussi le
+  # timeout_milliseconds cote aws_api_gateway_integration.query_lambda (api_gateway.tf).
+  timeout           = 60
   memory_size       = 1024
   filename          = data.archive_file.orchestrator.output_path
   source_code_hash  = data.archive_file.orchestrator.output_base64sha256
@@ -51,6 +55,16 @@ resource "aws_lambda_function" "orchestrator" {
 
 resource "aws_cloudwatch_log_group" "orchestrator" {
   name              = "/aws/lambda/rag-orchestrator-${var.environment}"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_audit_key_arn
+}
+
+# Log group applicatif utilise par audit.py (log_query) - distinct du log group ci-dessus
+# (stdout de la fonction). iam_orchestrator.tf autorisait deja logs:PutLogEvents dessus,
+# mais sans ce resource le log group lui-meme n'existait jamais : CreateLogStream echouait
+# avec ResourceNotFoundException a la premiere execution.
+resource "aws_cloudwatch_log_group" "query_audit" {
+  name              = "/aws/rag-platform/query-audit"
   retention_in_days = var.log_retention_days
   kms_key_id        = var.kms_audit_key_arn
 }

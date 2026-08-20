@@ -22,10 +22,13 @@ resource "aws_opensearchserverless_access_policy" "collection_access" {
         {
           ResourceType = "index"
           Resource     = ["index/${var.collection_name}/*"]
-          Permission   = ["aoss:CreateIndex", "aoss:UpdateIndex", "aoss:WriteDocument", "aoss:DescribeIndex"]
+          # ReadDocument est necessaire ici : avant de reindexer, indexer.py recherche les
+          # anciens chunks du meme doc_id (pas d'_id personnalise possible sur VECTORSEARCH,
+          # donc pas de delete_by_query -> on cherche puis on supprime par _id auto-genere).
+          Permission = ["aoss:CreateIndex", "aoss:UpdateIndex", "aoss:WriteDocument", "aoss:DescribeIndex", "aoss:ReadDocument"]
         }
       ]
-      Principal = [var.ingestion_lambda_role_arn]   # écriture réservée à l'ingestion
+      Principal = [var.ingestion_lambda_role_arn]   # écriture (+ lecture pour la dedup) réservée à l'ingestion
     },
     {
       Rules = [
