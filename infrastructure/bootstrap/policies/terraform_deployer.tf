@@ -132,9 +132,11 @@ data "aws_iam_policy_document" "terraform_deployer" {
   # Necessaire pour que les modules applicatifs (security/networking/api) puissent resoudre
   # l'ARN de la boundary via `data "aws_iam_policy"` avant de l'attacher a leurs propres roles.
   statement {
-    sid       = "AllowReadOwnBoundaryPolicy"
-    effect    = "Allow"
-    actions   = ["iam:GetPolicy"]
+    sid    = "AllowReadOwnBoundaryPolicy"
+    effect = "Allow"
+    # GetPolicyVersion est necessaire en plus de GetPolicy : data "aws_iam_policy" lit
+    # aussi le document de la version par defaut, pas seulement les metadonnees.
+    actions   = ["iam:GetPolicy", "iam:GetPolicyVersion"]
     resources = [aws_iam_policy.permissions_boundary.arn]
   }
 

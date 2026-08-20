@@ -44,9 +44,11 @@ data "aws_iam_policy_document" "permissions_boundary" {
   # l'ARN de cette boundary via `data "aws_iam_policy"` et l'attacher a leurs propres roles -
   # condition requise par terraform_deployer.IAMScoped pour tout iam:CreateRole sur role/rag-*.
   statement {
-    sid       = "AllowReadOwnBoundaryPolicy"
-    effect    = "Allow"
-    actions   = ["iam:GetPolicy"]
+    sid    = "AllowReadOwnBoundaryPolicy"
+    effect = "Allow"
+    # GetPolicyVersion est necessaire en plus de GetPolicy : data "aws_iam_policy" lit
+    # aussi le document de la version par defaut, pas seulement les metadonnees.
+    actions   = ["iam:GetPolicy", "iam:GetPolicyVersion"]
     resources = ["arn:aws:iam::*:policy/rag-platform-permissions-boundary"]
   }
 
