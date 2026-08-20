@@ -66,6 +66,9 @@ jobs:
         with:
           working_directory: infrastructure
           additional_args: --exclude=aws-iam-no-policy-wildcards
+          # Sans token, tfsec-action telecharge son binaire via l'API GitHub en anonyme -
+          # vite rate-limite (60 req/h par IP, partagee entre tous les runners GitHub).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   lint_python:
     runs-on: ubuntu-latest
