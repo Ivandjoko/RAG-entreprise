@@ -125,6 +125,10 @@ resource "aws_wafv2_web_acl" "main" {
   }
 
   tags = local.common_tags
+
+  # checkov:skip=CKV2_AWS_31: aws_wafv2_web_acl_logging_configuration.main existe bien plus
+  # bas dans ce fichier, pointant vers ce Web ACL via aws_wafv2_web_acl.main[0].arn - ce check
+  # graphe ne resout pas les references count-indexees ([0]), meme quand la config existe.
 }
 
 resource "aws_wafv2_web_acl_association" "api" {
