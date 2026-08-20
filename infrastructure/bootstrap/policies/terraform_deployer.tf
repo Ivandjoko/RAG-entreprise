@@ -138,7 +138,10 @@ data "aws_iam_policy_document" "terraform_deployer" {
       "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole",
       "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
       "iam:AttachRolePolicy", "iam:DetachRolePolicy",
-      "iam:TagRole", "iam:PassRole", "iam:ListRolePolicies"
+      "iam:TagRole", "iam:PassRole",
+      # ListRolePolicies = policies inline, ListAttachedRolePolicies = policies managees -
+      # Terraform relit les deux apres chaque creation/modification de role.
+      "iam:ListRolePolicies", "iam:ListAttachedRolePolicies"
     ]
     resources = ["arn:aws:iam::*:role/rag-*"]
   }
