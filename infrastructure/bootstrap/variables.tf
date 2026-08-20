@@ -8,5 +8,6 @@ variable "github_org" {
 }
 variable "github_repo" {
   type    = string
-  default = "rag-platform"
+  default = "RAG-entreprise" # nom reel du repo GitHub - "rag-platform" n'etait que le nom
+  # de projet initial, jamais celui du repo (utilise a tort ici, cassait sts:AssumeRoleWithWebIdentity)
 }
