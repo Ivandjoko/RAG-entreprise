@@ -14,6 +14,11 @@ provider "aws" {
 }
 
 # 1. Bucket S3 pour les states Terraform des vrais environnements
+# Logging d'acces S3 necessiterait un bucket de logs dedie supplementaire - le CloudTrail
+# deja actif au niveau compte couvre l'audit des API calls S3 (GetObject/PutObject) sur ce
+# bucket, sans infra additionnelle a maintenir ici (meme raisonnement que le skip checkov
+# CKV_AWS_18 ci-dessous).
+# tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "tfstate" {
   bucket = "acme-rag-tfstate-${var.environment_suffix}"
 
@@ -25,8 +30,6 @@ resource "aws_s3_bucket" "tfstate" {
   # S3 (GetObject/PutObject) sur ce bucket, sans infra additionnelle a maintenir ici.
   # checkov:skip=CKV2_AWS_62: bucket de state Terraform, aucun consommateur d'evenements
   # (pas de pipeline de traitement a declencher sur upload de state).
-  # tfsec:ignore:aws-s3-enable-bucket-logging: meme raisonnement que le skip checkov
-  # CKV_AWS_18 ci-dessus (CloudTrail deja actif au niveau compte).
 }
 
 resource "aws_s3_bucket_versioning" "tfstate" {
