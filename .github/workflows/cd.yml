@@ -96,6 +96,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - uses: actions/download-artifact@v4
         with:
           name: orchestrator-layer
@@ -129,6 +130,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_STAGING }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - uses: actions/download-artifact@v4
         with:
           name: orchestrator-layer
@@ -162,6 +164,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - uses: actions/download-artifact@v4
         with:
           name: orchestrator-layer
@@ -198,6 +201,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-dev
@@ -237,6 +241,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - run: |
           cd src/evaluation
           python run_evaluation.py --output scores.json
@@ -271,6 +276,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_STAGING }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-staging
@@ -308,6 +314,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
           aws-region: ${{ env.AWS_REGION }}
+          role-skip-session-tagging: true
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-prod
