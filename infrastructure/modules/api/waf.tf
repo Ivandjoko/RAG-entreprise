@@ -74,13 +74,34 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # Règle 4 : blocage géographique - à activer seulement si le client a un périmètre
+  # Règle 4 : entrées malveillantes connues (payloads Log4Shell/Log4j inclus) - gratuit et
+  # pertinent même sur un backend non-Java, ce jeu couvre aussi d'autres patterns génériques
+  rule {
+    name     = "AWS-KnownBadInputs"
+    priority = 4
+    override_action {
+      none {}
+    }
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "KnownBadInputs"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Règle 5 : blocage géographique - à activer seulement si le client a un périmètre
   # géographique défini (ex: entreprise française sans besoin d'accès international)
   dynamic "rule" {
     for_each = length(var.blocked_countries) > 0 ? [1] : []
     content {
       name     = "GeoBlock"
-      priority = 4
+      priority = 5
       action {
         block {}
       }
@@ -110,4 +131,20 @@ resource "aws_wafv2_web_acl_association" "api" {
   count        = var.enable_waf ? 1 : 0
   resource_arn = aws_api_gateway_stage.main.arn
   web_acl_arn  = aws_wafv2_web_acl.main[0].arn
+}
+
+# Le préfixe "aws-waf-logs-" est imposé par AWS pour qu'un log group CloudWatch soit
+# éligible comme destination de logs WAFv2 - sans lui, aws_wafv2_web_acl_logging_configuration
+# échoue au apply.
+resource "aws_cloudwatch_log_group" "waf" {
+  count             = var.enable_waf ? 1 : 0
+  name              = "aws-waf-logs-rag-platform-${var.environment}"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_audit_key_arn
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "main" {
+  count                   = var.enable_waf ? 1 : 0
+  resource_arn            = aws_wafv2_web_acl.main[0].arn
+  log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
 }

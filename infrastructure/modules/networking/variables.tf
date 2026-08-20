@@ -10,3 +10,6 @@ variable "azs" {
   type    = list(string)
   default = ["eu-west-3a", "eu-west-3b"]
 }
+variable "log_retention_days" {
+  type = number
+}

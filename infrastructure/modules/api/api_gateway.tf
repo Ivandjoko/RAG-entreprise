@@ -22,12 +22,40 @@ resource "aws_api_gateway_resource" "query" {
   path_part   = "query"
 }
 
+resource "aws_api_gateway_request_validator" "query_body" {
+  name                        = "validate-query-body"
+  rest_api_id                 = aws_api_gateway_rest_api.main.id
+  validate_request_body       = true
+  validate_request_parameters = false
+}
+
+# Rejette un body malformé (pas de "question", mauvais type) directement à la porte
+# d'entrée API Gateway - évite un cold start Lambda inutile pour une requête invalide,
+# et complète (sans remplacer) la validation déjà faite dans handler.py
+resource "aws_api_gateway_model" "query_request" {
+  rest_api_id  = aws_api_gateway_rest_api.main.id
+  name         = "QueryRequest"
+  content_type = "application/json"
+  schema = jsonencode({
+    "$schema" = "http://json-schema.org/draft-04/schema#"
+    type      = "object"
+    required  = ["question"]
+    properties = {
+      question = { type = "string", minLength = 1 }
+    }
+  })
+}
+
 resource "aws_api_gateway_method" "query_post" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.query.id
-  http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  rest_api_id          = aws_api_gateway_rest_api.main.id
+  resource_id          = aws_api_gateway_resource.query.id
+  http_method          = "POST"
+  authorization        = "COGNITO_USER_POOLS"
+  authorizer_id        = aws_api_gateway_authorizer.cognito.id
+  request_validator_id = aws_api_gateway_request_validator.query_body.id
+  request_models = {
+    "application/json" = aws_api_gateway_model.query_request.name
+  }
 }
 
 resource "aws_api_gateway_integration" "query_lambda" {
@@ -71,6 +99,9 @@ resource "aws_api_gateway_deployment" "main" {
   }
 }
 
+# checkov:skip=CKV2_AWS_51: le mTLS/certificat client sert a verifier que l'appelant parle
+# a un backend HTTP tiers de confiance - integration AWS_PROXY vers Lambda, invocation
+# interne signee AWS de bout en bout, pas de backend HTTP externe a authentifier.
 resource "aws_api_gateway_stage" "main" {
   deployment_id = aws_api_gateway_deployment.main.id
   rest_api_id   = aws_api_gateway_rest_api.main.id

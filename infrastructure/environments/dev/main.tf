@@ -1,8 +1,9 @@
 # environments/dev/main.tf
 module "networking" {
-  source      = "../../modules/networking"
-  environment = var.environment
-  vpc_cidr    = var.vpc_cidr
+  source             = "../../modules/networking"
+  environment        = var.environment
+  vpc_cidr           = var.vpc_cidr
+  log_retention_days = var.retention_days
 }
 
 module "security" {

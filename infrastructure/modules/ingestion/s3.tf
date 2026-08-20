@@ -1,5 +1,10 @@
 # modules/ingestion/s3.tf
 
+# checkov:skip=CKV_AWS_144: replication cross-region disproportionnee a ce stade du projet
+# (double le cout de stockage + IAM/bucket supplementaires) - a reconsiderer si un vrai
+# besoin de DR multi-region apparait.
+# checkov:skip=CKV_AWS_18: logging d'acces S3 necessiterait un bucket de logs dedie
+# supplementaire - CloudTrail (niveau compte) couvre deja l'audit des API calls sur ce bucket.
 resource "aws_s3_bucket" "documents" {
   bucket = "rag-platform-documents-${var.environment}-${data.aws_caller_identity.current.account_id}"
   # Le suffixe account_id garantit l'unicité globale sans avoir besoin d'un

@@ -29,6 +29,59 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# Le SG par défaut d'une VPC autorise tout le trafic sortant à la création, et n'est
+# jamais utilisé explicitement ici (chaque ressource a son propre SG dédié) - le durcir
+# empêche qu'il soit attaché par erreur plus tard avec des règles ouvertes. Pas de bloc
+# ingress/egress déclaré = aucune règle = tout bloqué.
+resource "aws_default_security_group" "main" {
+  vpc_id = aws_vpc.main.id
+  tags   = merge(local.common_tags, { Name = "rag-default-sg-${var.environment}-do-not-use" })
+}
+
+# Visibilité réseau de base (qui parle à qui, accepté/rejeté) - utile en investigation
+# d'incident, coût proportionnel au volume de trafic donc raisonnable à ce stade.
+resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
+  name              = "/aws/vpc-flow-logs/rag-vpc-${var.environment}"
+  retention_in_days = var.log_retention_days
+}
+
+data "aws_iam_policy_document" "flow_logs_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "vpc_flow_logs" {
+  name               = "rag-vpc-flow-logs-${var.environment}"
+  assume_role_policy = data.aws_iam_policy_document.flow_logs_assume_role.json
+}
+
+resource "aws_iam_role_policy" "vpc_flow_logs" {
+  name = "vpc-flow-logs-write"
+  role = aws_iam_role.vpc_flow_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogGroups", "logs:DescribeLogStreams"]
+      Resource = "${aws_cloudwatch_log_group.vpc_flow_logs.arn}:*"
+    }]
+  })
+}
+
+resource "aws_flow_log" "main" {
+  vpc_id               = aws_vpc.main.id
+  traffic_type         = "ALL"
+  log_destination_type = "cloud-watch-logs"
+  log_destination      = aws_cloudwatch_log_group.vpc_flow_logs.arn
+  iam_role_arn         = aws_iam_role.vpc_flow_logs.arn
+}
+
 # Security group des VPC endpoints Interface, et security group des Lambdas : ils se
 # référencent mutuellement (Lambda -> egress vers vpc_endpoints, vpc_endpoints <- ingress
 # depuis Lambda). Les règles sont donc déclarées à part (aws_vpc_security_group_*_rule),
@@ -48,6 +101,10 @@ resource "aws_security_group" "lambda" {
   vpc_id      = aws_vpc.main.id
 
   tags = merge(local.common_tags, { Name = "rag-lambda-${var.environment}" })
+
+  # checkov:skip=CKV2_AWS_5: faux positif - attache aux 3 Lambdas (ingestion, orchestrator,
+  # index_bootstrap) via var.lambda_security_group_id dans modules/ingestion et
+  # modules/retrieval ; checkov ne trace pas les references cross-module par variable.
 }
 
 resource "aws_vpc_security_group_ingress_rule" "vpc_endpoints_from_lambda" {
