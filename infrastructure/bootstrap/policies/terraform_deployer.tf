@@ -110,27 +110,37 @@ data "aws_iam_policy_document" "terraform_deployer" {
   # "rag-*" : les roles applicatifs (rag-orchestrator-lambda-*, rag-ingestion-lambda-*,
   # rag-vpc-flow-logs-*, rag-api-gateway-cloudwatch-*) ne suivent pas non plus
   # "rag-platform-*".
+  #
+  # Seul iam:CreateRole porte reellement la cle de condition "iam:PermissionsBoundary"
+  # dans le contexte de la requete (c'est l'appel qui specifie quelle boundary attacher).
+  # Regrouper GetRole/ListRolePolicies/PutRolePolicy/etc. dans CE MEME statement avec CETTE
+  # condition les rendait silencieusement inutilisables : sans la cle dans leur contexte,
+  # StringEquals evalue a faux et le Allow ne s'applique jamais - quel que soit le temps
+  # d'attente. D'ou la separation en deux statements.
   statement {
-    sid    = "IAMScoped"
-    effect = "Allow"
-    actions = [
-      "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole",
-      "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
-      "iam:AttachRolePolicy", "iam:DetachRolePolicy",
-      "iam:TagRole", "iam:PassRole",
-      # Apres CreateRole, Terraform relit systematiquement l'etat reel du role (policies
-      # inline attachees hors Terraform) - sans ListRolePolicies, cette relecture echoue
-      # meme si le role vient d'etre cree avec succes.
-      "iam:ListRolePolicies"
-    ]
+    sid       = "IAMCreateRoleScoped"
+    effect    = "Allow"
+    actions   = ["iam:CreateRole"]
     resources = ["arn:aws:iam::*:role/rag-*"]
     condition {
-      # Verrou structurel : impossible de créer/modifier un rôle SANS lui attacher
+      # Verrou structurel : impossible de créer un rôle SANS lui attacher
       # la permissions boundary définie plus bas - même si l'action est autorisée ci-dessus
       test     = "StringEquals"
       variable = "iam:PermissionsBoundary"
       values   = [aws_iam_policy.permissions_boundary.arn]
     }
+  }
+
+  statement {
+    sid    = "IAMRoleLifecycleScoped"
+    effect = "Allow"
+    actions = [
+      "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole",
+      "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
+      "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+      "iam:TagRole", "iam:PassRole", "iam:ListRolePolicies"
+    ]
+    resources = ["arn:aws:iam::*:role/rag-*"]
   }
 
   # Necessaire pour que les modules applicatifs (security/networking/api) puissent resoudre
