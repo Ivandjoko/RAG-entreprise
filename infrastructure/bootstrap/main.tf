@@ -89,7 +89,10 @@ resource "aws_dynamodb_table" "tfstate_lock" {
 
   # Chiffrement explicite (cle AWS-owned, gratuite) : sans ce bloc, certains scanners
   # (tfsec) signalent l'absence de config meme si DynamoDB chiffre deja tout au repos par
-  # defaut depuis 2018 - l'expliciter coute rien et satisfait le check.
+  # defaut depuis 2018 - l'expliciter coute rien et satisfait le check. CMK dediee non
+  # utilisee : disproportionnee pour une table de lock ephemere sans donnee sensible (meme
+  # raisonnement que le skip checkov CKV_AWS_119).
+  # tfsec:ignore:aws-dynamodb-table-customer-key
   server_side_encryption {
     enabled = true
   }
@@ -97,8 +100,6 @@ resource "aws_dynamodb_table" "tfstate_lock" {
   # checkov:skip=CKV_AWS_119: table de lock Terraform (aucune donnee sensible, juste un
   # LockID ephemere) - chiffrement AWS-owned deja actif par defaut ; une CMK dediee au seul
   # bootstrap serait disproportionnee pour cette table.
-  # tfsec:ignore:aws-dynamodb-table-customer-key: meme raisonnement que le skip checkov
-  # ci-dessus - CMK disproportionnee pour une table de lock ephemere sans donnee sensible.
 }
 
 # 3. Le fournisseur OIDC GitHub
