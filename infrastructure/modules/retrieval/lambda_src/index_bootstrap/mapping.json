@@ -1,0 +1,28 @@
+{
+  "settings": {
+    "index.knn": true
+  },
+  "mappings": {
+    "properties": {
+      "doc_id": { "type": "keyword" },
+      "chunk_index": { "type": "integer" },
+      "text": { "type": "text" },
+      "section_title": { "type": "keyword" },
+      "source": { "type": "keyword" },
+      "permissions": { "type": "keyword" },
+      "vector": {
+        "type": "knn_vector",
+        "dimension": 1024,
+        "space_type": "cosinesimil",
+        "method": {
+          "engine": "faiss",
+          "name": "hnsw",
+          "parameters": {
+            "ef_construction": 128,
+            "m": 16
+          }
+        }
+      }
+    }
+  }
+}

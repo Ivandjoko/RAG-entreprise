@@ -1,0 +1,19 @@
+name: Integration Tests
+
+# Réutilisable uniquement, appelé depuis cd.yml après le déploiement en dev (voir la
+# note dans ci.yml).
+on:
+  workflow_call: {}
+
+jobs:
+  integration_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - run: pytest tests/integration --base-url=$DEV_API_URL
+        env:
+          DEV_API_URL: ${{ vars.DEV_API_URL }}
